@@ -1,0 +1,17 @@
+# dependencies
+/node_modules
+# keep symlink note: may be symlink to admin node_modules
+
+# next
+/.next/
+/out/
+
+# env
+.env*.local
+
+# debug
+npm-debug.log*
+
+# typescript
+next-env.d.ts
+*.tsbuildinfo
