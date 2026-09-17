@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import {
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -8,13 +9,14 @@ import {
   View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 import { ClinicBackdrop } from "@/components/ClinicBackdrop";
 import { LoadingState } from "@/components/LoadingState";
 import { Badge, Button, Card, Empty, StatCard } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { DoctorPatientDetail } from "@/lib/types";
-import { formatDate, formatDateTime, statusLabel, statusTone } from "@/lib/format";
+import { formatDate, formatDateTime, formatTime, statusLabel, statusTone } from "@/lib/format";
 import { useScreenData } from "@/lib/useScreenData";
 import { useTheme } from "@/lib/theme";
 
@@ -24,6 +26,10 @@ export default function PatientDetailScreen() {
   const { colors, fonts } = useTheme();
   const [patient, setPatient] = useState<DoctorPatientDetail | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [summaryDoc, setSummaryDoc] = useState<{
+    title: string;
+    body: string;
+  } | null>(null);
 
   const styles = useMemo(
     () =>
@@ -68,6 +74,37 @@ export default function PatientDetailScreen() {
           lineHeight: 18,
           fontFamily: fonts.sans,
         },
+        docRow: {
+          marginTop: 10,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          paddingVertical: 12,
+          paddingHorizontal: 12,
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: colors.surfaceAlt,
+        },
+        docIconWrap: {
+          width: 40,
+          height: 40,
+          borderRadius: 10,
+          backgroundColor: colors.primary + "18",
+          alignItems: "center",
+          justifyContent: "center",
+        },
+        docTitle: {
+          color: colors.text,
+          fontSize: 14,
+          fontFamily: fonts.sansSemi,
+        },
+        docSubtitle: {
+          color: colors.muted,
+          fontSize: 12,
+          fontFamily: fonts.sans,
+          marginTop: 2,
+        },
         visitCard: {
           backgroundColor: colors.surface,
           borderRadius: 14,
@@ -105,6 +142,40 @@ export default function PatientDetailScreen() {
         error: {
           color: colors.danger,
           fontFamily: fonts.sans,
+        },
+        modalWrap: {
+          flex: 1,
+          backgroundColor: "rgba(0,0,0,0.45)",
+          justifyContent: "flex-end",
+        },
+        modalCard: {
+          backgroundColor: colors.surface,
+          borderTopLeftRadius: 18,
+          borderTopRightRadius: 18,
+          paddingHorizontal: 18,
+          paddingTop: 16,
+          paddingBottom: 28,
+          maxHeight: "85%",
+          gap: 12,
+        },
+        modalTitle: {
+          color: colors.text,
+          fontSize: 18,
+          fontFamily: fonts.sansBold,
+        },
+        modalBody: {
+          color: colors.text,
+          fontSize: 15,
+          lineHeight: 22,
+          fontFamily: fonts.sans,
+        },
+        modalHandle: {
+          alignSelf: "center",
+          width: 40,
+          height: 4,
+          borderRadius: 2,
+          backgroundColor: colors.border,
+          marginBottom: 4,
         },
       }),
     [colors, fonts],
@@ -232,6 +303,9 @@ export default function PatientDetailScreen() {
             {patient.visit_history.length ? (
               patient.visit_history.map((visit) => {
                 const expanded = expandedId === visit.id;
+                const voiceSummaries = (visit.attachments || []).filter(
+                  (att) => att.kind === "voice" && att.summary_text?.trim(),
+                );
                 return (
                   <Pressable
                     key={visit.id}
@@ -262,6 +336,47 @@ export default function PatientDetailScreen() {
                                   : ""}
                               </Text>
                             ))}
+                            {voiceSummaries.map((att, index) => {
+                              const summaryLabel =
+                                voiceSummaries.length > 1
+                                  ? `Voice summary ${index + 1}`
+                                  : "Voice summary";
+                              const docTitle = `${patient.name} · ${formatDate(visit.token_date)} · ${formatTime(visit.scheduled_at)} (${summaryLabel})`;
+                              return (
+                              <Pressable
+                                key={`sum-${att.id}`}
+                                style={styles.docRow}
+                                onPress={(e) => {
+                                  e.stopPropagation?.();
+                                  setSummaryDoc({
+                                    title: docTitle,
+                                    body: att.summary_text!.trim(),
+                                  });
+                                }}
+                              >
+                                <View style={styles.docIconWrap}>
+                                  <Ionicons
+                                    name="document-text-outline"
+                                    size={22}
+                                    color={colors.primary}
+                                  />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                  <Text style={styles.docTitle} numberOfLines={2}>
+                                    {docTitle}
+                                  </Text>
+                                  <Text style={styles.docSubtitle}>
+                                    Tap to open
+                                  </Text>
+                                </View>
+                                <Ionicons
+                                  name="chevron-forward"
+                                  size={18}
+                                  color={colors.muted}
+                                />
+                              </Pressable>
+                              );
+                            })}
                           </View>
                         ) : (
                           <Text style={styles.meta}>No media attached.</Text>
@@ -272,7 +387,10 @@ export default function PatientDetailScreen() {
                           </Text>
                         ) : null}
                         <Pressable
-                          onPress={() => router.push(`/(tabs)/appointments/${visit.id}`)}
+                          onPress={(e) => {
+                            e.stopPropagation?.();
+                            router.push(`/(tabs)/appointments/${visit.id}`);
+                          }}
                         >
                           <Text style={styles.link}>Open full visit →</Text>
                         </Pressable>
@@ -291,6 +409,37 @@ export default function PatientDetailScreen() {
           </>
         )}
       </ScrollView>
+
+      <Modal
+        visible={Boolean(summaryDoc)}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setSummaryDoc(null)}
+      >
+        <View style={styles.modalWrap}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setSummaryDoc(null)}
+          />
+          <View style={styles.modalCard}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>
+              {summaryDoc?.title || "Voice summary"}
+            </Text>
+            <ScrollView
+              style={{ maxHeight: 420 }}
+              showsVerticalScrollIndicator
+            >
+              <Text style={styles.modalBody}>{summaryDoc?.body}</Text>
+            </ScrollView>
+            <Button
+              label="Close"
+              variant="secondary"
+              onPress={() => setSummaryDoc(null)}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

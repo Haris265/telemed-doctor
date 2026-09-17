@@ -87,6 +87,19 @@ export type DoctorProfile = {
   created_at: string;
 };
 
+export type DoctorProfileUpdatePayload = {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  session_time?: number;
+};
+
+export type ChangePasswordPayload = {
+  current_password: string;
+  new_password: string;
+  confirm_password: string;
+};
+
 export type UserInfo = {
   id: number;
   username: string;
@@ -132,6 +145,10 @@ export type VisitAttachment = {
   mime_type: string;
   duration_seconds?: number | null;
   sent_via_whatsapp?: boolean;
+  transcript_text?: string;
+  summary_text?: string;
+  summary_status?: "pending" | "ready" | "failed" | "skipped";
+  summary_error?: string;
   created_at: string;
 };
 

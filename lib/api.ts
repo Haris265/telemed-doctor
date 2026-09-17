@@ -12,6 +12,8 @@ import type {
   DoctorPatientDetail,
   DoctorPatientSummary,
   DoctorProfile,
+  DoctorProfileUpdatePayload,
+  ChangePasswordPayload,
   DoctorWhatsAppSession,
   DoctorWhatsAppStatus,
   PatientLookup,
@@ -291,6 +293,18 @@ export const api = {
 
   me: () => request<DoctorProfile>("/api/doctor/me/"),
 
+  updateMe: (payload: DoctorProfileUpdatePayload) =>
+    request<DoctorProfile>("/api/doctor/me/", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+
+  changePassword: (payload: ChangePasswordPayload) =>
+    request<{ detail: string }>("/api/auth/change-password/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
   dashboard: () => request<DashboardStats>("/api/doctor/dashboard/"),
 
   appointments: async (params?: {
@@ -389,6 +403,25 @@ export const api = {
     request<void>(
       `/api/doctor/appointments/${appointmentId}/attachments/${attachmentId}/`,
       { method: "DELETE" },
+    ),
+
+  updateAttachmentSummary: (
+    appointmentId: number,
+    attachmentId: number,
+    payload: { summary_text: string },
+  ) =>
+    request<VisitAttachment>(
+      `/api/doctor/appointments/${appointmentId}/attachments/${attachmentId}/`,
+      { method: "PATCH", body: JSON.stringify(payload) },
+    ),
+
+  regenerateAttachmentSummary: (
+    appointmentId: number,
+    attachmentId: number,
+  ) =>
+    request<VisitAttachment>(
+      `/api/doctor/appointments/${appointmentId}/attachments/${attachmentId}/regenerate-summary/`,
+      { method: "POST", body: JSON.stringify({}) },
     ),
 
   patients: () => request<DoctorPatientSummary[]>("/api/doctor/patients/"),

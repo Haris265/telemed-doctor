@@ -19,6 +19,11 @@ export default function ProfileLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ title: "Profile" }} />
+      <Stack.Screen name="edit" options={{ title: "Edit profile" }} />
+      <Stack.Screen
+        name="change-password"
+        options={{ title: "Change password" }}
+      />
       <Stack.Screen
         name="whatsapp-connect"
         options={{ title: "Connect WhatsApp" }}

@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -35,10 +36,32 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function doctorSnapshot(d: DoctorProfile) {
+  return [
+    d.id,
+    d.email,
+    d.full_name,
+    d.first_name,
+    d.last_name,
+    d.session_time,
+    d.is_active,
+    d.specialities?.map((s) => s.id).join(",") ?? "",
+  ].join("|");
+}
+
+function userSnapshot(u: UserInfo) {
+  return [u.id, u.email, u.username, u.full_name, u.role].join("|");
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [doctor, setDoctor] = useState<DoctorProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const userRef = useRef<UserInfo | null>(null);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   useEffect(() => {
     (async () => {
@@ -89,15 +112,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshMe = useCallback(async () => {
     const me = await api.me();
-    setDoctor(me);
     const access = await getAccessToken();
-    const refresh = await import("./storage").then((m) =>
-      m.storage.getItem("opd_doctor_refresh"),
-    );
-    if (user && access && refresh) {
-      await setAuth(access, refresh, user, me);
+    const refresh = await storage.getItem("opd_doctor_refresh");
+    const currentUser = userRef.current;
+
+    setDoctor((prev) => {
+      if (prev && doctorSnapshot(prev) === doctorSnapshot(me)) return prev;
+      return me;
+    });
+
+    if (currentUser && access && refresh) {
+      const nextUser: UserInfo = {
+        ...currentUser,
+        email: me.email || currentUser.email,
+        username: me.email || currentUser.username,
+        full_name: me.full_name || currentUser.full_name,
+      };
+      if (userSnapshot(currentUser) !== userSnapshot(nextUser)) {
+        setUser(nextUser);
+        userRef.current = nextUser;
+      }
+      await setAuth(access, refresh, userRef.current ?? nextUser, me);
     }
-  }, [user]);
+  }, []);
 
   const value = useMemo(
     () => ({ user, doctor, loading, signIn, signOut, refreshMe }),

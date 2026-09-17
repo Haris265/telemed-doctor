@@ -4,6 +4,7 @@ import {
   Alert,
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   RefreshControl,
@@ -147,6 +148,261 @@ function VoiceNotePlayer({
           }}
         />
       </View>
+    </View>
+  );
+}
+
+function VoiceSummaryBlock({
+  appointmentId,
+  attachment,
+  onUpdated,
+  colors,
+  fonts,
+}: {
+  appointmentId: number;
+  attachment: VisitAttachment;
+  onUpdated: (att: VisitAttachment) => void;
+  colors: {
+    primary: string;
+    text: string;
+    muted: string;
+    danger: string;
+    border: string;
+    surface: string;
+    surfaceAlt: string;
+  };
+  fonts: { sansBold: string; sans: string; sansSemi: string };
+}) {
+  const status = attachment.summary_status || "skipped";
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(attachment.summary_text || "");
+  const [saving, setSaving] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+  const [localError, setLocalError] = useState("");
+
+  useEffect(() => {
+    if (!editing) setDraft(attachment.summary_text || "");
+  }, [attachment.summary_text, editing]);
+
+  if (status === "skipped") return null;
+
+  async function onSave() {
+    setSaving(true);
+    setLocalError("");
+    try {
+      const updated = await api.updateAttachmentSummary(
+        appointmentId,
+        attachment.id,
+        { summary_text: draft },
+      );
+      onUpdated(updated);
+      setEditing(false);
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function onRetry() {
+    setRetrying(true);
+    setLocalError("");
+    try {
+      const updated = await api.regenerateAttachmentSummary(
+        appointmentId,
+        attachment.id,
+      );
+      onUpdated(updated);
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "Retry failed");
+    } finally {
+      setRetrying(false);
+    }
+  }
+
+  const statusLabelText =
+    status === "pending"
+      ? "Generating Roman Urdu summary…"
+      : status === "failed"
+        ? "Summary failed"
+        : "Voice summary (Roman Urdu)";
+
+  return (
+    <View style={{ marginTop: 10, gap: 8 }}>
+      <Text
+        style={{
+          color: colors.muted,
+          fontFamily: fonts.sansSemi,
+          fontSize: 12,
+          textTransform: "uppercase",
+          letterSpacing: 0.4,
+        }}
+      >
+        {statusLabelText}
+      </Text>
+
+      {status === "pending" ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={{ color: colors.muted, fontFamily: fonts.sans, fontSize: 13 }}>
+            Please wait…
+          </Text>
+        </View>
+      ) : null}
+
+      {status === "failed" ? (
+        <View style={{ gap: 8 }}>
+          <Text style={{ color: colors.danger, fontFamily: fonts.sans, fontSize: 13 }}>
+            {attachment.summary_error || "Could not generate summary."}
+          </Text>
+          <Button
+            label="Retry summary"
+            onPress={onRetry}
+            loading={retrying}
+            variant="secondary"
+          />
+        </View>
+      ) : null}
+
+      {status === "ready" || (status === "failed" && attachment.summary_text) ? (
+        <View style={{ gap: 8 }}>
+          <Text
+            style={{
+              color: colors.text,
+              fontFamily: fonts.sans,
+              fontSize: 14,
+              lineHeight: 20,
+            }}
+          >
+            {attachment.summary_text?.trim() || "—"}
+          </Text>
+          <Pressable
+            onPress={() => {
+              setDraft(attachment.summary_text || "");
+              setLocalError("");
+              setEditing(true);
+            }}
+            hitSlop={8}
+          >
+            <Text
+              style={{
+                color: colors.primary,
+                fontFamily: fonts.sansSemi,
+                fontSize: 14,
+              }}
+            >
+              Edit summary
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {localError && !editing ? (
+        <Text style={{ color: colors.danger, fontFamily: fonts.sans, fontSize: 12 }}>
+          {localError}
+        </Text>
+      ) : null}
+
+      <Modal
+        visible={editing}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          if (saving) return;
+          setEditing(false);
+          setDraft(attachment.summary_text || "");
+          setLocalError("");
+        }}
+      >
+        <KeyboardAvoidingView
+          style={{ flex: 1, justifyContent: "flex-end" }}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <Pressable
+            style={{
+              ...StyleSheet.absoluteFillObject,
+              backgroundColor: "rgba(0,0,0,0.45)",
+            }}
+            onPress={() => {
+              if (saving) return;
+              setEditing(false);
+              setDraft(attachment.summary_text || "");
+              setLocalError("");
+            }}
+          />
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderTopLeftRadius: 18,
+              borderTopRightRadius: 18,
+              paddingHorizontal: 18,
+              paddingTop: 14,
+              paddingBottom: 28,
+              maxHeight: "88%",
+              gap: 12,
+              borderTopWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            <View
+              style={{
+                alignSelf: "center",
+                width: 40,
+                height: 4,
+                borderRadius: 2,
+                backgroundColor: colors.border,
+              }}
+            />
+            <Text
+              style={{
+                color: colors.text,
+                fontFamily: fonts.sansBold,
+                fontSize: 17,
+              }}
+            >
+              Edit voice summary
+            </Text>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              showsVerticalScrollIndicator={false}
+            >
+              <TextArea
+                label="Roman Urdu summary"
+                value={draft}
+                onChangeText={setDraft}
+                placeholder="Roman Urdu summary…"
+                autoFocus
+              />
+              {localError ? (
+                <Text
+                  style={{
+                    color: colors.danger,
+                    fontFamily: fonts.sans,
+                    fontSize: 12,
+                    marginTop: 8,
+                  }}
+                >
+                  {localError}
+                </Text>
+              ) : null}
+              <View style={{ height: 14 }} />
+              <Button label="Save" onPress={onSave} loading={saving} />
+              <View style={{ height: 10 }} />
+              <Button
+                label="Cancel"
+                variant="secondary"
+                disabled={saving}
+                onPress={() => {
+                  setEditing(false);
+                  setDraft(attachment.summary_text || "");
+                  setLocalError("");
+                }}
+              />
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -323,6 +579,32 @@ export default function AppointmentDetailScreen() {
   }, [appointmentId]);
 
   const { refreshing, loading, error, setError, onRefresh } = useScreenData(load);
+
+  const hasPendingSummary = useMemo(
+    () =>
+      attachments.some(
+        (a) => a.kind === "voice" && a.summary_status === "pending",
+      ),
+    [attachments],
+  );
+
+  useEffect(() => {
+    if (!hasPendingSummary || !appointmentId) return;
+    let cancelled = false;
+    const timer = setInterval(async () => {
+      try {
+        const data = await api.appointment(appointmentId);
+        if (cancelled) return;
+        setAttachments(data.attachments || []);
+      } catch {
+        // ignore transient poll errors
+      }
+    }, 2500);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [hasPendingSummary, appointmentId]);
 
   const visitInProgress = Boolean(
     appointment?.visit_started_at && !appointment?.visit_ended_at,
@@ -863,6 +1145,21 @@ export default function AppointmentDetailScreen() {
                           )
                         ) : null}
                       </View>
+                      {att.kind === "voice" ? (
+                        <VoiceSummaryBlock
+                          appointmentId={appointmentId}
+                          attachment={att}
+                          colors={colors}
+                          fonts={fonts}
+                          onUpdated={(updated) =>
+                            setAttachments((prev) =>
+                              prev.map((a) =>
+                                a.id === updated.id ? updated : a,
+                              ),
+                            )
+                          }
+                        />
+                      ) : null}
                     </Card>
                   ))}
                 </View>

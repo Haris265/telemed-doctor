@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Alert,
   RefreshControl,
@@ -22,6 +22,40 @@ export default function ProfileScreen() {
   const [waStatus, setWaStatus] = useState<DoctorWhatsAppStatus | null>(null);
   const [waBusy, setWaBusy] = useState(false);
   const styles = useThemedStyles((c, f) => ({
+    headerRow: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 14,
+      marginBottom: 4,
+    },
+    avatar: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: c.primary,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+    },
+    avatarText: {
+      color: "#ffffff",
+      fontFamily: f.sansBold,
+      fontSize: 20,
+      letterSpacing: 0.5,
+    },
+    headerText: {
+      flex: 1,
+      gap: 2,
+    },
+    headerName: {
+      color: c.text,
+      fontSize: 20,
+      fontFamily: f.sansBold,
+    },
+    headerEmail: {
+      color: c.muted,
+      fontSize: 14,
+      fontFamily: f.sans,
+    },
     label: {
       color: c.muted,
       fontSize: 12,
@@ -55,6 +89,20 @@ export default function ProfileScreen() {
     },
   }));
 
+  const initials = useMemo(() => {
+    const first = doctor?.first_name?.trim()?.[0] || "";
+    const last = doctor?.last_name?.trim()?.[0] || "";
+    const pair = `${first}${last}`.toUpperCase();
+    if (pair) return pair;
+    const fromFull = (doctor?.full_name || user?.full_name || "DR")
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase() || "")
+      .join("");
+    return fromFull || "DR";
+  }, [doctor, user]);
+
   const load = useCallback(async () => {
     await refreshMe();
     try {
@@ -66,10 +114,6 @@ export default function ProfileScreen() {
   }, [refreshMe]);
 
   const { refreshing, loading, error, onRefresh } = useScreenData(load);
-
-  useEffect(() => {
-    load().catch(() => undefined);
-  }, [load]);
 
   function onSignOut() {
     Alert.alert(
@@ -124,7 +168,7 @@ export default function ProfileScreen() {
         }
       >
         <Title>Profile</Title>
-        <Subtitle>Pull down to refresh your account details.</Subtitle>
+        <Subtitle>Account details, WhatsApp, and security.</Subtitle>
 
         <View style={{ height: 20 }} />
 
@@ -134,11 +178,19 @@ export default function ProfileScreen() {
           <LoadingState label="Loading profile…" />
         ) : (
           <Card style={{ gap: 10 }}>
-            <Text style={styles.label}>Name</Text>
-            <Text style={styles.value}>{doctor?.full_name || "—"}</Text>
-
-            <Text style={styles.label}>Email</Text>
-            <Text style={styles.value}>{doctor?.email || user?.email || "—"}</Text>
+            <View style={styles.headerRow}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{initials}</Text>
+              </View>
+              <View style={styles.headerText}>
+                <Text style={styles.headerName} numberOfLines={1}>
+                  {doctor?.full_name || "Doctor"}
+                </Text>
+                <Text style={styles.headerEmail} numberOfLines={1}>
+                  {doctor?.email || user?.email || "—"}
+                </Text>
+              </View>
+            </View>
 
             <Text style={styles.label}>Specialities</Text>
             <Text style={styles.value}>
@@ -154,6 +206,19 @@ export default function ProfileScreen() {
             <Text style={styles.value}>
               {doctor?.is_active ? "Active" : "Inactive"}
             </Text>
+
+            <View style={{ height: 8 }} />
+            <Button
+              label="Edit profile"
+              onPress={() => router.push("/(tabs)/profile/edit" as Href)}
+            />
+            <Button
+              label="Change password"
+              variant="secondary"
+              onPress={() =>
+                router.push("/(tabs)/profile/change-password" as Href)
+              }
+            />
           </Card>
         )}
 
