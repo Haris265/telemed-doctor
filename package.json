@@ -34,6 +34,13 @@
   "overrides": {
     "react-native-worklets": "0.12.2"
   },
+  "expo": {
+    "install": {
+      "exclude": [
+        "react-native-worklets"
+      ]
+    }
+  },
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
