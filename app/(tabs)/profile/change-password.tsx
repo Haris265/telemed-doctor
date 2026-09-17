@@ -85,6 +85,7 @@ export default function ChangePasswordScreen() {
               value={currentPassword}
               onChangeText={setCurrentPassword}
               secureTextEntry
+              secureToggle
               autoCapitalize="none"
               autoCorrect={false}
               textContentType="password"
@@ -94,6 +95,7 @@ export default function ChangePasswordScreen() {
               value={newPassword}
               onChangeText={setNewPassword}
               secureTextEntry
+              secureToggle
               autoCapitalize="none"
               autoCorrect={false}
               textContentType="newPassword"
@@ -103,6 +105,7 @@ export default function ChangePasswordScreen() {
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry
+              secureToggle
               autoCapitalize="none"
               autoCorrect={false}
               textContentType="newPassword"

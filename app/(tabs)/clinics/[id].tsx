@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams, Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AppHeaderTitle } from "@/components/AppHeaderTitle";
 import {
   DayScheduleEditor,
   dayRangesToApiSlots,
@@ -407,7 +408,12 @@ export default function ClinicScheduleScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ headerShown: true, title: "Clinic schedule" }} />
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          headerTitle: () => <AppHeaderTitle />,
+        }}
+      />
       <ScrollView
         contentContainerStyle={{ paddingBottom: 32 }}
         refreshControl={

@@ -23,6 +23,11 @@ export default function DashboardScreen() {
   const { doctor, refreshMe } = useAuth();
   const { colors, fonts } = useTheme();
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [viewportHeight, setViewportHeight] = useState(0);
+  const [contentHeight, setContentHeight] = useState(0);
+
+  const scrollEnabled =
+    viewportHeight > 0 && contentHeight > viewportHeight + 8;
 
   function openAppointments(filter: string) {
     router.push({ pathname: "/(tabs)/appointments", params: { filter } });
@@ -68,7 +73,13 @@ export default function DashboardScreen() {
   return (
     <Screen>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 32 }}
+        bounces={false}
+        alwaysBounceVertical={false}
+        overScrollMode="never"
+        scrollEnabled={scrollEnabled}
+        onLayout={(e) => setViewportHeight(e.nativeEvent.layout.height)}
+        onContentSizeChange={(_w, h) => setContentHeight(h)}
+        contentContainerStyle={{ paddingBottom: 12 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -84,7 +95,7 @@ export default function DashboardScreen() {
         <Title>Today&apos;s clinic</Title>
         <Subtitle>Pull down to refresh your queue and analytics.</Subtitle>
 
-        <View style={{ height: 20 }} />
+        <View style={{ height: 12 }} />
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 

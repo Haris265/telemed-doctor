@@ -1,4 +1,4 @@
-import { ReactNode, useMemo } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -9,6 +9,7 @@ import {
   View,
   ViewStyle,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { ClinicBackdrop } from "@/components/ClinicBackdrop";
 import { useTheme } from "@/lib/theme";
@@ -152,9 +153,14 @@ export function Button({
   );
 }
 
-export function Input(props: TextInputProps & { label?: string }) {
+export function Input(
+  props: TextInputProps & { label?: string; secureToggle?: boolean },
+) {
   const { colors, fonts } = useTheme();
-  const { label, style, ...rest } = props;
+  const { label, style, secureToggle, secureTextEntry, ...rest } = props;
+  const [visible, setVisible] = useState(false);
+  const isSecure = Boolean(secureToggle ? !visible : secureTextEntry);
+
   return (
     <View style={{ gap: 6 }}>
       {label ? (
@@ -169,24 +175,48 @@ export function Input(props: TextInputProps & { label?: string }) {
           {label}
         </Text>
       ) : null}
-      <TextInput
-        placeholderTextColor={colors.muted}
-        style={[
-          {
-            backgroundColor: colors.surfaceAlt,
-            borderWidth: 1,
-            borderColor: colors.border,
-            borderRadius: 12,
-            paddingHorizontal: 14,
-            paddingVertical: 12,
-            color: colors.text,
-            fontSize: 16,
-            fontFamily: fonts.sans,
-          },
-          style,
-        ]}
-        {...rest}
-      />
+      <View style={{ position: "relative", justifyContent: "center" }}>
+        <TextInput
+          placeholderTextColor={colors.muted}
+          secureTextEntry={isSecure}
+          style={[
+            {
+              backgroundColor: colors.surfaceAlt,
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: 12,
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              paddingRight: secureToggle ? 46 : 14,
+              color: colors.text,
+              fontSize: 16,
+              fontFamily: fonts.sans,
+            },
+            style,
+          ]}
+          {...rest}
+        />
+        {secureToggle ? (
+          <Pressable
+            onPress={() => setVisible((v) => !v)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={visible ? "Hide password" : "Show password"}
+            style={{
+              position: "absolute",
+              right: 12,
+              height: "100%",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons
+              name={visible ? "eye-off-outline" : "eye-outline"}
+              size={22}
+              color={colors.muted}
+            />
+          </Pressable>
+        ) : null}
+      </View>
     </View>
   );
 }

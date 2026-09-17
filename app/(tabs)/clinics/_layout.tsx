@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 
+import { AppHeaderTitle } from "@/components/AppHeaderTitle";
 import { useTheme } from "@/lib/theme";
 
 export default function ClinicsLayout() {
@@ -10,6 +11,8 @@ export default function ClinicsLayout() {
       screenOptions={{
         headerStyle: { backgroundColor: colors.surface },
         headerTintColor: colors.text,
+        headerTitle: () => <AppHeaderTitle />,
+        headerTitleAlign: "left",
         headerTitleStyle: {
           fontFamily: fonts.sansBold,
           color: colors.text,

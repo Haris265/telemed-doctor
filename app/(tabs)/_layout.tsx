@@ -1,6 +1,7 @@
 import { Redirect, Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
+import { AppHeaderTitle } from "@/components/AppHeaderTitle";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 
@@ -16,6 +17,8 @@ export default function TabLayout() {
         headerShown: false,
         headerStyle: { backgroundColor: colors.surface },
         headerTintColor: colors.text,
+        headerTitle: () => <AppHeaderTitle />,
+        headerTitleAlign: "left",
         headerTitleStyle: {
           fontFamily: fonts.sansBold,
           color: colors.text,

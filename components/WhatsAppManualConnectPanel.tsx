@@ -196,7 +196,7 @@ export function WhatsAppManualConnectPanel({
       </View>
 
       <Button
-        label={busy ? "Saving…" : "Connect for testing"}
+        label={busy ? "Connecting…" : "Connect for testing"}
         onPress={onConnect}
         disabled={busy}
       />
