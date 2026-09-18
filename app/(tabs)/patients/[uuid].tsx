@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
 import {
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -11,6 +10,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
+import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ClinicBackdrop } from "@/components/ClinicBackdrop";
 import { LoadingState } from "@/components/LoadingState";
 import { Badge, Button, Card, Empty, StatCard } from "@/components/ui";
@@ -143,21 +143,6 @@ export default function PatientDetailScreen() {
           color: colors.danger,
           fontFamily: fonts.sans,
         },
-        modalWrap: {
-          flex: 1,
-          backgroundColor: "rgba(0,0,0,0.45)",
-          justifyContent: "flex-end",
-        },
-        modalCard: {
-          backgroundColor: colors.surface,
-          borderTopLeftRadius: 18,
-          borderTopRightRadius: 18,
-          paddingHorizontal: 18,
-          paddingTop: 16,
-          paddingBottom: 28,
-          maxHeight: "85%",
-          gap: 12,
-        },
         modalTitle: {
           color: colors.text,
           fontSize: 18,
@@ -168,14 +153,6 @@ export default function PatientDetailScreen() {
           fontSize: 15,
           lineHeight: 22,
           fontFamily: fonts.sans,
-        },
-        modalHandle: {
-          alignSelf: "center",
-          width: 40,
-          height: 4,
-          borderRadius: 2,
-          backgroundColor: colors.border,
-          marginBottom: 4,
         },
       }),
     [colors, fonts],
@@ -410,36 +387,19 @@ export default function PatientDetailScreen() {
         )}
       </ScrollView>
 
-      <Modal
+      <BottomSheetModal
         visible={Boolean(summaryDoc)}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setSummaryDoc(null)}
+        onClose={() => setSummaryDoc(null)}
+        maxHeight="85%"
+        contentStyle={{ gap: 12 }}
       >
-        <View style={styles.modalWrap}>
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={() => setSummaryDoc(null)}
-          />
-          <View style={styles.modalCard}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>
-              {summaryDoc?.title || "Voice summary"}
-            </Text>
-            <ScrollView
-              style={{ maxHeight: 420 }}
-              showsVerticalScrollIndicator
-            >
-              <Text style={styles.modalBody}>{summaryDoc?.body}</Text>
-            </ScrollView>
-            <Button
-              label="Close"
-              variant="secondary"
-              onPress={() => setSummaryDoc(null)}
-            />
-          </View>
-        </View>
-      </Modal>
+        <Text style={styles.modalTitle}>
+          {summaryDoc?.title || "Voice summary"}
+        </Text>
+        <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator>
+          <Text style={styles.modalBody}>{summaryDoc?.body}</Text>
+        </ScrollView>
+      </BottomSheetModal>
     </View>
   );
 }

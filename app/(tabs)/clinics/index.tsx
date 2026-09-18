@@ -1,9 +1,6 @@
 import { useCallback, useState } from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -12,8 +9,8 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { LoadingState } from "@/components/LoadingState";
 import {
   Button,
@@ -27,6 +24,11 @@ import {
   useThemedStyles,
 } from "@/components/ui";
 import { api } from "@/lib/api";
+import {
+  formatPkMobile,
+  isValidPkMobile,
+  pkMobileHint,
+} from "@/lib/pkPhone";
 import type { ClinicFormPayload, DoctorClinic } from "@/lib/types";
 import { useScreenData } from "@/lib/useScreenData";
 import { useTheme } from "@/lib/theme";
@@ -46,14 +48,13 @@ function clinicToForm(item: DoctorClinic): ClinicFormPayload {
     address: item.clinic.address,
     city: item.clinic.city || "",
     area: item.clinic.area || "",
-    phone: item.clinic.phone || "",
+    phone: formatPkMobile(item.clinic.phone || ""),
     is_primary: item.is_primary,
   };
 }
 
 export default function ClinicsScreen() {
-  const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
+  const { colors, fonts } = useTheme();
   const styles = useThemedStyles((c, f) => ({
     row: {
       flexDirection: "row" as const,
@@ -122,19 +123,6 @@ export default function ClinicsScreen() {
       fontSize: 13,
       fontFamily: f.sansBold,
     },
-    modalWrap: {
-      flex: 1,
-      backgroundColor: "rgba(15,23,42,0.45)",
-      justifyContent: "flex-end" as const,
-    },
-    modalCard: {
-      backgroundColor: c.surface,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
-      padding: 20,
-      gap: 12,
-      maxHeight: "90%" as const,
-    },
     modalTitle: {
       color: c.text,
       fontSize: 20,
@@ -171,8 +159,17 @@ export default function ClinicsScreen() {
   }
 
   async function onSave() {
-    if (!form.name.trim() || !form.address.trim()) {
-      setFormError("Clinic name and address are required.");
+    if (
+      !form.name.trim() ||
+      !form.address.trim() ||
+      !form.city?.trim() ||
+      !form.area?.trim()
+    ) {
+      setFormError("Clinic name, address, city, and area are required.");
+      return;
+    }
+    if (!isValidPkMobile(form.phone || "")) {
+      setFormError("Enter a valid 11-digit Pakistani mobile number.");
       return;
     }
     const payload = {
@@ -310,84 +307,76 @@ export default function ClinicsScreen() {
         )}
       </ScrollView>
 
-      <Modal
+      <BottomSheetModal
         visible={modalOpen}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setModalOpen(false)}
+        onClose={() => setModalOpen(false)}
+        keyboardAvoiding
       >
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        <Text style={styles.modalTitle}>
+          {editing ? "Edit clinic" : "Add clinic"}
+        </Text>
+        <View style={{ height: 12 }} />
+        <Input
+          label="Clinic name"
+          required
+          value={form.name}
+          onChangeText={(name) => setForm((f) => ({ ...f, name }))}
+          placeholder="e.g. City Clinic"
+        />
+        <View style={{ height: 10 }} />
+        <Input
+          label="Address"
+          required
+          value={form.address}
+          onChangeText={(address) => setForm((f) => ({ ...f, address }))}
+          placeholder="e.g. Street address"
+        />
+        <View style={{ height: 10 }} />
+        <Input
+          label="City"
+          required
+          value={form.city}
+          onChangeText={(city) => setForm((f) => ({ ...f, city }))}
+          placeholder="e.g. Karachi"
+        />
+        <View style={{ height: 10 }} />
+        <Input
+          label="Area"
+          required
+          value={form.area}
+          onChangeText={(area) => setForm((f) => ({ ...f, area }))}
+          placeholder="e.g. Gulshan"
+        />
+        <View style={{ height: 10 }} />
+        <Input
+          label="Phone"
+          hint="optional"
+          value={form.phone}
+          onChangeText={(phone) =>
+            setForm((f) => ({ ...f, phone: formatPkMobile(phone) }))
+          }
+          placeholder="e.g. 0377-7747664"
+          keyboardType="phone-pad"
+          maxLength={12}
+        />
+        <Text
+          style={{
+            color: colors.muted,
+            fontSize: 11,
+            fontFamily: fonts.sans,
+            marginTop: 4,
+          }}
         >
-          <View style={styles.modalWrap}>
-            <View
-              style={[
-                styles.modalCard,
-                { paddingBottom: Math.max(insets.bottom, 20) },
-              ]}
-            >
-              <ScrollView
-                keyboardShouldPersistTaps="handled"
-                keyboardDismissMode="on-drag"
-              >
-                <Text style={styles.modalTitle}>
-                  {editing ? "Edit clinic" : "Add clinic"}
-                </Text>
-                <View style={{ height: 12 }} />
-                <Input
-                  label="Clinic name"
-                  value={form.name}
-                  onChangeText={(name) => setForm((f) => ({ ...f, name }))}
-                  placeholder="e.g. City Care Clinic"
-                />
-                <View style={{ height: 10 }} />
-                <Input
-                  label="Address"
-                  value={form.address}
-                  onChangeText={(address) => setForm((f) => ({ ...f, address }))}
-                  placeholder="Street / building"
-                />
-                <View style={{ height: 10 }} />
-                <Input
-                  label="City"
-                  value={form.city}
-                  onChangeText={(city) => setForm((f) => ({ ...f, city }))}
-                  placeholder="Karachi"
-                />
-                <View style={{ height: 10 }} />
-                <Input
-                  label="Area"
-                  value={form.area}
-                  onChangeText={(area) => setForm((f) => ({ ...f, area }))}
-                  placeholder="Gulshan / Clifton"
-                />
-                <View style={{ height: 10 }} />
-                <Input
-                  label="Phone"
-                  value={form.phone}
-                  onChangeText={(phone) => setForm((f) => ({ ...f, phone }))}
-                  placeholder="Optional"
-                  keyboardType="phone-pad"
-                />
-                <ErrorText>{formError}</ErrorText>
-                <View style={{ height: 16 }} />
-                <Button
-                  label={editing ? "Update clinic" : "Save clinic"}
-                  loading={saving}
-                  onPress={onSave}
-                />
-                <View style={{ height: 10 }} />
-                <Button
-                  label="Cancel"
-                  variant="secondary"
-                  onPress={() => setModalOpen(false)}
-                />
-              </ScrollView>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+          {pkMobileHint}
+        </Text>
+        <View style={{ height: 16 }} />
+        <Button
+          label={editing ? "Update clinic" : "Save clinic"}
+          loading={saving}
+          onPress={onSave}
+        />
+        <ErrorText>{formError}</ErrorText>
+      </BottomSheetModal>
     </Screen>
   );
 }

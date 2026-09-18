@@ -4,6 +4,7 @@ import {
   Alert,
   Image,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -26,6 +27,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
+import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ClinicBackdrop } from "@/components/ClinicBackdrop";
 import { LoadingState } from "@/components/LoadingState";
 import { Badge, Button, Card, ErrorText, TextArea } from "@/components/ui";
@@ -88,9 +90,16 @@ function VoiceNotePlayer({
     if (!uri) return;
     if (player.playing) {
       player.pause();
-    } else {
-      player.play();
+      return;
     }
+    const duration = status.duration || attachment.duration_seconds || 0;
+    const atEnd =
+      Boolean(status.didJustFinish) ||
+      (duration > 0 && status.currentTime >= duration - 0.05);
+    if (atEnd) {
+      await player.seekTo(0);
+    }
+    player.play();
   }
 
   return (
@@ -303,106 +312,50 @@ function VoiceSummaryBlock({
         </Text>
       ) : null}
 
-      <Modal
+      <BottomSheetModal
         visible={editing}
-        animationType="slide"
-        transparent
-        onRequestClose={() => {
+        onClose={() => {
           if (saving) return;
           setEditing(false);
           setDraft(attachment.summary_text || "");
           setLocalError("");
         }}
+        closeDisabled={saving}
+        keyboardAvoiding
+        maxHeight="88%"
+        contentStyle={{ gap: 12 }}
       >
-        <KeyboardAvoidingView
-          style={{ flex: 1, justifyContent: "flex-end" }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        <Text
+          style={{
+            color: colors.text,
+            fontFamily: fonts.sansBold,
+            fontSize: 17,
+          }}
         >
-          <Pressable
+          Edit voice summary
+        </Text>
+        <TextArea
+          label="Roman Urdu summary"
+          value={draft}
+          onChangeText={setDraft}
+          placeholder="Roman Urdu summary…"
+          autoFocus
+        />
+        {localError ? (
+          <Text
             style={{
-              ...StyleSheet.absoluteFillObject,
-              backgroundColor: "rgba(0,0,0,0.45)",
-            }}
-            onPress={() => {
-              if (saving) return;
-              setEditing(false);
-              setDraft(attachment.summary_text || "");
-              setLocalError("");
-            }}
-          />
-          <View
-            style={{
-              backgroundColor: colors.surface,
-              borderTopLeftRadius: 18,
-              borderTopRightRadius: 18,
-              paddingHorizontal: 18,
-              paddingTop: 14,
-              paddingBottom: 28,
-              maxHeight: "88%",
-              gap: 12,
-              borderTopWidth: 1,
-              borderColor: colors.border,
+              color: colors.danger,
+              fontFamily: fonts.sans,
+              fontSize: 12,
+              marginTop: 8,
             }}
           >
-            <View
-              style={{
-                alignSelf: "center",
-                width: 40,
-                height: 4,
-                borderRadius: 2,
-                backgroundColor: colors.border,
-              }}
-            />
-            <Text
-              style={{
-                color: colors.text,
-                fontFamily: fonts.sansBold,
-                fontSize: 17,
-              }}
-            >
-              Edit voice summary
-            </Text>
-            <ScrollView
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="on-drag"
-              showsVerticalScrollIndicator={false}
-            >
-              <TextArea
-                label="Roman Urdu summary"
-                value={draft}
-                onChangeText={setDraft}
-                placeholder="Roman Urdu summary…"
-                autoFocus
-              />
-              {localError ? (
-                <Text
-                  style={{
-                    color: colors.danger,
-                    fontFamily: fonts.sans,
-                    fontSize: 12,
-                    marginTop: 8,
-                  }}
-                >
-                  {localError}
-                </Text>
-              ) : null}
-              <View style={{ height: 14 }} />
-              <Button label="Save" onPress={onSave} loading={saving} />
-              <View style={{ height: 10 }} />
-              <Button
-                label="Cancel"
-                variant="secondary"
-                disabled={saving}
-                onPress={() => {
-                  setEditing(false);
-                  setDraft(attachment.summary_text || "");
-                  setLocalError("");
-                }}
-              />
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+            {localError}
+          </Text>
+        ) : null}
+        <View style={{ height: 14 }} />
+        <Button label="Save" onPress={onSave} loading={saving} />
+      </BottomSheetModal>
     </View>
   );
 }
@@ -428,6 +381,7 @@ export default function AppointmentDetailScreen() {
   >(null);
   const [deleteBusyId, setDeleteBusyId] = useState<number | null>(null);
   const [nowTick, setNowTick] = useState(() => Date.now());
+  const [previewUri, setPreviewUri] = useState<string | null>(null);
 
   const styles = useMemo(
     () =>
@@ -520,6 +474,27 @@ export default function AppointmentDetailScreen() {
           color: colors.muted,
           fontSize: 12,
           fontFamily: fonts.sans,
+        },
+        previewRoot: {
+          flex: 1,
+          backgroundColor: "rgba(8,14,24,0.92)",
+          justifyContent: "center",
+          alignItems: "center",
+        },
+        previewImage: {
+          width: "100%",
+          height: "80%",
+        },
+        previewClose: {
+          position: "absolute",
+          top: 48,
+          right: 20,
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor: "rgba(255,255,255,0.15)",
+          alignItems: "center",
+          justifyContent: "center",
         },
         voiceCard: {
           gap: 14,
@@ -713,6 +688,31 @@ export default function AppointmentDetailScreen() {
     );
   }
 
+  function promptOpenSettings(title: string, message: string) {
+    Alert.alert(title, message, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Open Settings", onPress: () => Linking.openSettings() },
+    ]);
+  }
+
+  async function ensureMediaLibraryAccess(): Promise<boolean> {
+    let perm = await ImagePicker.getMediaLibraryPermissionsAsync();
+    if (!perm.granted && perm.accessPrivileges !== "limited") {
+      perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    }
+    const ok =
+      perm.granted ||
+      perm.accessPrivileges === "limited" ||
+      perm.accessPrivileges === "all";
+    if (ok) return true;
+
+    promptOpenSettings(
+      "Photos permission needed",
+      "Allow photo access (all photos or selected photos) in Settings to attach images from your gallery.",
+    );
+    return false;
+  }
+
   async function pickImage(fromCamera: boolean) {
     setError("");
     const busyKey = fromCamera ? "camera" : "gallery";
@@ -720,31 +720,19 @@ export default function AppointmentDetailScreen() {
       if (fromCamera) {
         const cam = await ImagePicker.requestCameraPermissionsAsync();
         if (!cam.granted) {
-          Alert.alert(
+          promptOpenSettings(
             "Camera permission needed",
             "Allow camera access in Settings so you can take visit photos.",
           );
           return;
         }
         if (Platform.OS === "android") {
-          const lib = await ImagePicker.requestMediaLibraryPermissionsAsync();
-          if (!lib.granted) {
-            Alert.alert(
-              "Photos permission needed",
-              "Allow photo library access so visit images can be saved and uploaded.",
-            );
-            return;
-          }
+          const ok = await ensureMediaLibraryAccess();
+          if (!ok) return;
         }
       } else {
-        const lib = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!lib.granted) {
-          Alert.alert(
-            "Gallery permission needed",
-            "Allow photo library access in Settings to attach images.",
-          );
-          return;
-        }
+        const ok = await ensureMediaLibraryAccess();
+        if (!ok) return;
       }
 
       const result = fromCamera
@@ -792,7 +780,7 @@ export default function AppointmentDetailScreen() {
     try {
       const perm = await requestRecordingPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert(
+        promptOpenSettings(
           "Microphone permission needed",
           "Allow microphone access in Settings to record voice notes.",
         );
@@ -1027,7 +1015,20 @@ export default function AppointmentDetailScreen() {
 
                   <Card>
                     <View style={styles.voiceCard}>
-                      {isRecording ? (
+                      {voiceUploading ? (
+                        <View
+                          style={[
+                            styles.micBtn,
+                            isRecording && styles.micBtnRecording,
+                            {
+                              alignItems: "center",
+                              justifyContent: "center",
+                            },
+                          ]}
+                        >
+                          <ActivityIndicator color="#fff" />
+                        </View>
+                      ) : isRecording ? (
                         <View
                           style={{
                             alignItems: "center",
@@ -1037,14 +1038,9 @@ export default function AppointmentDetailScreen() {
                           <View style={styles.micPulse} />
                           <Pressable
                             onPress={stopRecordingAndUpload}
-                            disabled={voiceUploading}
                             style={[styles.micBtn, styles.micBtnRecording]}
                           >
-                            {voiceUploading ? (
-                              <ActivityIndicator color="#fff" />
-                            ) : (
-                              <Ionicons name="stop" size={28} color="#fff" />
-                            )}
+                            <Ionicons name="stop" size={28} color="#fff" />
                           </Pressable>
                         </View>
                       ) : (
@@ -1058,14 +1054,16 @@ export default function AppointmentDetailScreen() {
                       )}
 
                       <Text style={styles.voiceTitle}>
-                        {isRecording
-                          ? "Recording…"
-                          : voiceUploading
-                            ? "Uploading voice note…"
+                        {voiceUploading
+                          ? "Uploading voice note…"
+                          : isRecording
+                            ? "Recording…"
                             : "Voice note"}
                       </Text>
 
-                      {isRecording ? (
+                      {voiceUploading ? (
+                        <Text style={styles.voiceHint}>Please wait</Text>
+                      ) : isRecording ? (
                         <Text style={styles.voiceTimer}>
                           {formatAudioMs(recordSeconds * 1000)}
                         </Text>
@@ -1073,20 +1071,18 @@ export default function AppointmentDetailScreen() {
                         <Text style={styles.voiceHint}>Tap the mic to record</Text>
                       )}
 
-                      {isRecording ? (
+                      {isRecording && !voiceUploading ? (
                         <View style={styles.voiceActions}>
                           <View style={{ flex: 1 }}>
                             <Button
                               label="Cancel"
                               variant="secondary"
                               onPress={cancelRecording}
-                              disabled={voiceUploading}
                             />
                           </View>
                           <View style={{ flex: 1 }}>
                             <Button
                               label="Stop & upload"
-                              loading={voiceUploading}
                               onPress={stopRecordingAndUpload}
                             />
                           </View>
@@ -1097,13 +1093,41 @@ export default function AppointmentDetailScreen() {
                 </View>
               ) : null}
 
-              {attachments.length ? (
+              {attachments.length ||
+              mediaBusy === "camera" ||
+              mediaBusy === "gallery" ||
+              mediaBusy === "voice" ? (
                 <View style={{ gap: 10 }}>
+                  {mediaBusy === "camera" ||
+                  mediaBusy === "gallery" ||
+                  mediaBusy === "voice" ? (
+                    <Card>
+                      <View style={styles.mediaRow}>
+                        <ActivityIndicator color={colors.primary} />
+                        <Text style={styles.mediaTitle}>
+                          {mediaBusy === "voice"
+                            ? "Uploading voice note…"
+                            : "Uploading image…"}
+                        </Text>
+                      </View>
+                    </Card>
+                  ) : null}
                   {attachments.map((att) => (
                     <Card key={att.id}>
                       <View style={styles.mediaRow}>
                         {att.kind === "image" ? (
-                          <>
+                          <Pressable
+                            onPress={() => {
+                              const uri = resolveMediaUrl(att.url);
+                              if (uri) setPreviewUri(uri);
+                            }}
+                            style={{
+                              flex: 1,
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 12,
+                            }}
+                          >
                             <Image
                               source={{ uri: resolveMediaUrl(att.url) }}
                               style={styles.thumb}
@@ -1114,7 +1138,7 @@ export default function AppointmentDetailScreen() {
                                 {att.original_name || att.mime_type}
                               </Text>
                             </View>
-                          </>
+                          </Pressable>
                         ) : (
                           <VoiceNotePlayer
                             attachment={att}
@@ -1175,7 +1199,7 @@ export default function AppointmentDetailScreen() {
                     label="Rejection reason (optional)"
                     value={rejectionReason}
                     onChangeText={setRejectionReason}
-                    placeholder="No-show, declined consultation..."
+                    placeholder="e.g. No-show"
                   />
                   <View style={styles.actions}>
                     <Button
@@ -1200,6 +1224,36 @@ export default function AppointmentDetailScreen() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal
+        visible={Boolean(previewUri)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPreviewUri(null)}
+      >
+        <View style={styles.previewRoot}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setPreviewUri(null)}
+          />
+          {previewUri ? (
+            <Image
+              source={{ uri: previewUri }}
+              style={styles.previewImage}
+              resizeMode="contain"
+            />
+          ) : null}
+          <Pressable
+            onPress={() => setPreviewUri(null)}
+            style={styles.previewClose}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Close preview"
+          >
+            <Ionicons name="close" size={22} color="#fff" />
+          </Pressable>
+        </View>
+      </Modal>
     </View>
   );
 }

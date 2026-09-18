@@ -115,21 +115,31 @@ export function MonthCalendar({
           aspectRatio: 1,
           alignItems: "center",
           justifyContent: "center",
-          borderRadius: 12,
+          position: "relative",
         },
-        cellAvailable: {
+        dayBox: {
+          width: 34,
+          height: 34,
+          borderRadius: 10,
+          alignItems: "center",
+          justifyContent: "center",
+        },
+        dayBoxAvailable: {
           backgroundColor: colors.bgSoft,
         },
-        cellClosed: {
+        dayBoxClosed: {
           backgroundColor: "rgba(185, 28, 28, 0.08)",
         },
-        cellActive: {
+        dayBoxActive: {
           backgroundColor: colors.primary,
         },
         dayText: {
           fontSize: 14,
           color: colors.text,
           fontFamily: fonts.sansSemi,
+          textAlign: "center",
+          includeFontPadding: false,
+          textAlignVertical: "center",
         },
         dayMuted: {
           color: colors.border,
@@ -139,17 +149,16 @@ export function MonthCalendar({
           fontFamily: fonts.sansBold,
         },
         dot: {
+          position: "absolute",
+          bottom: 4,
+          alignSelf: "center",
           width: 5,
           height: 5,
           borderRadius: 3,
           backgroundColor: colors.primary,
-          marginTop: 2,
         },
         dotClosed: {
           backgroundColor: colors.danger,
-        },
-        dotOnSelected: {
-          backgroundColor: "#fff",
         },
       }),
     [colors, fonts],
@@ -216,28 +225,31 @@ export function MonthCalendar({
               key={key}
               disabled={!canSelect}
               onPress={() => onSelect(key)}
-              style={[
-                styles.cell,
-                highlighted && styles.cellAvailable,
-                closed && !highlighted && styles.cellClosed,
-                active && styles.cellActive,
-              ]}
+              style={styles.cell}
             >
-              <Text
+              <View
                 style={[
-                  styles.dayText,
-                  !canSelect && styles.dayMuted,
-                  active && styles.dayActive,
+                  styles.dayBox,
+                  highlighted && !active && styles.dayBoxAvailable,
+                  closed && !highlighted && !active && styles.dayBoxClosed,
+                  active && styles.dayBoxActive,
                 ]}
               >
-                {cell.getDate()}
-              </Text>
-              {highlighted || closed ? (
+                <Text
+                  style={[
+                    styles.dayText,
+                    !canSelect && styles.dayMuted,
+                    active && styles.dayActive,
+                  ]}
+                >
+                  {cell.getDate()}
+                </Text>
+              </View>
+              {(highlighted || closed) && !active ? (
                 <View
                   style={[
                     styles.dot,
                     closed && !highlighted && styles.dotClosed,
-                    active && styles.dotOnSelected,
                   ]}
                 />
               ) : null}

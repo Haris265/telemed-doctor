@@ -154,26 +154,73 @@ export function Button({
 }
 
 export function Input(
-  props: TextInputProps & { label?: string; secureToggle?: boolean },
+  props: TextInputProps & {
+    label?: string;
+    hint?: string;
+    required?: boolean;
+    secureToggle?: boolean;
+  },
 ) {
   const { colors, fonts } = useTheme();
-  const { label, style, secureToggle, secureTextEntry, ...rest } = props;
+  const {
+    label,
+    hint,
+    required,
+    style,
+    secureToggle,
+    secureTextEntry,
+    ...rest
+  } = props;
   const [visible, setVisible] = useState(false);
   const isSecure = Boolean(secureToggle ? !visible : secureTextEntry);
 
   return (
     <View style={{ gap: 6 }}>
       {label ? (
-        <Text
+        <View
           style={{
-            color: colors.muted,
-            fontSize: 12,
-            fontFamily: fonts.sansSemi,
-            letterSpacing: 0.3,
+            flexDirection: "row",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 4,
           }}
         >
-          {label}
-        </Text>
+          <Text
+            style={{
+              color: colors.muted,
+              fontSize: 12,
+              fontFamily: fonts.sansSemi,
+              letterSpacing: 0.3,
+            }}
+          >
+            {label}
+          </Text>
+          {required ? (
+            <Text
+              accessibilityLabel="required"
+              style={{
+                color: colors.danger,
+                fontSize: 13,
+                fontFamily: fonts.sansBold,
+                lineHeight: 14,
+                marginTop: 1,
+              }}
+            >
+              *
+            </Text>
+          ) : null}
+          {hint ? (
+            <Text
+              style={{
+                color: colors.muted,
+                fontSize: 11,
+                fontFamily: fonts.sans,
+              }}
+            >
+              {hint}
+            </Text>
+          ) : null}
+        </View>
       ) : null}
       <View style={{ position: "relative", justifyContent: "center" }}>
         <TextInput
@@ -279,8 +326,10 @@ export function ErrorText({ children }: { children?: string | null }) {
       style={{
         color: colors.danger,
         fontSize: 13,
-        marginTop: 8,
-        fontFamily: fonts.sans,
+        marginTop: 10,
+        marginBottom: 4,
+        fontFamily: fonts.sansSemi,
+        lineHeight: 18,
       }}
     >
       {children}

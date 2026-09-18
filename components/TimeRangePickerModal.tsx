@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
+import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { Button, useThemedStyles } from "@/components/ui";
-import { useTheme } from "@/lib/theme";
 
 function pad2(n: number) {
   return String(n).padStart(2, "0");
@@ -46,7 +46,6 @@ export function TimeRangePickerModal({
   onCancel,
   onSave,
 }: Props) {
-  const { colors, fonts } = useTheme();
   const [startH, setStartH] = useState(9);
   const [startM, setStartM] = useState(0);
   const [endH, setEndH] = useState(17);
@@ -65,18 +64,6 @@ export function TimeRangePickerModal({
   }, [visible, start, end]);
 
   const styles = useThemedStyles((c, f) => ({
-    backdrop: {
-      flex: 1,
-      backgroundColor: "rgba(15,23,42,0.45)",
-      justifyContent: "flex-end" as const,
-    },
-    sheet: {
-      backgroundColor: c.surface,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
-      padding: 20,
-      maxHeight: "88%" as const,
-    },
     title: {
       color: c.text,
       fontSize: 20,
@@ -205,68 +192,57 @@ export function TimeRangePickerModal({
   }
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={onCancel}
-    >
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.subtitle}>
-            Pick when you are available (Pakistan time).
-          </Text>
+    <BottomSheetModal visible={visible} onClose={onCancel} maxHeight="88%">
+      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.subtitle}>
+        Pick when you are available (Pakistan time).
+      </Text>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>From</Text>
-            <Text style={styles.preview}>{startLabel}</Text>
-            <View style={styles.row}>
-              <ChipColumn
-                label="Hour"
-                values={HOURS}
-                selected={startH}
-                onSelect={setStartH}
-                format={(h) => pad2(h)}
-              />
-              <ChipColumn
-                label="Min"
-                values={MINUTES}
-                selected={startM}
-                onSelect={setStartM}
-                format={(m) => pad2(m)}
-              />
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>To</Text>
-            <Text style={styles.preview}>{endLabel}</Text>
-            <View style={styles.row}>
-              <ChipColumn
-                label="Hour"
-                values={HOURS}
-                selected={endH}
-                onSelect={setEndH}
-                format={(h) => pad2(h)}
-              />
-              <ChipColumn
-                label="Min"
-                values={MINUTES}
-                selected={endM}
-                onSelect={setEndM}
-                format={(m) => pad2(m)}
-              />
-            </View>
-          </View>
-
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-
-          <Button label="Apply hours" onPress={confirm} />
-          <View style={{ height: 10 }} />
-          <Button label="Cancel" variant="secondary" onPress={onCancel} />
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel}>From</Text>
+        <Text style={styles.preview}>{startLabel}</Text>
+        <View style={styles.row}>
+          <ChipColumn
+            label="Hour"
+            values={HOURS}
+            selected={startH}
+            onSelect={setStartH}
+            format={(h) => pad2(h)}
+          />
+          <ChipColumn
+            label="Min"
+            values={MINUTES}
+            selected={startM}
+            onSelect={setStartM}
+            format={(m) => pad2(m)}
+          />
         </View>
       </View>
-    </Modal>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel}>To</Text>
+        <Text style={styles.preview}>{endLabel}</Text>
+        <View style={styles.row}>
+          <ChipColumn
+            label="Hour"
+            values={HOURS}
+            selected={endH}
+            onSelect={setEndH}
+            format={(h) => pad2(h)}
+          />
+          <ChipColumn
+            label="Min"
+            values={MINUTES}
+            selected={endM}
+            onSelect={setEndM}
+            format={(m) => pad2(m)}
+          />
+        </View>
+      </View>
+
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+
+      <Button label="Apply hours" onPress={confirm} />
+    </BottomSheetModal>
   );
 }

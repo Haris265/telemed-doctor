@@ -12,7 +12,7 @@ type Props = {
 export function SearchField({
   value,
   onChangeText,
-  placeholder = "Search patient, phone, or token…",
+  placeholder = "Search name, phone, token",
 }: Props) {
   const { colors, fonts } = useTheme();
 

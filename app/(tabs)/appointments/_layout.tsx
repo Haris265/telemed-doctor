@@ -1,6 +1,7 @@
 import { Stack } from "expo-router";
 
 import { AppHeaderTitle } from "@/components/AppHeaderTitle";
+import { HeaderBackButton } from "@/components/HeaderBackButton";
 import { useTheme } from "@/lib/theme";
 
 export default function AppointmentsLayout() {
@@ -22,8 +23,24 @@ export default function AppointmentsLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ title: "Appointments" }} />
-      <Stack.Screen name="book" options={{ title: "Book appointment" }} />
-      <Stack.Screen name="[id]" options={{ title: "Visit" }} />
+      <Stack.Screen
+        name="book"
+        options={{
+          title: "Book appointment",
+          headerLeft: () => (
+            <HeaderBackButton fallbackHref="/(tabs)/appointments" />
+          ),
+        }}
+      />
+      <Stack.Screen
+        name="[id]"
+        options={{
+          title: "Visit",
+          headerLeft: () => (
+            <HeaderBackButton fallbackHref="/(tabs)/appointments" />
+          ),
+        }}
+      />
     </Stack>
   );
 }

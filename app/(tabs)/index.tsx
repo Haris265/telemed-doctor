@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import {
+  Alert,
+  BackHandler,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -7,7 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 
 import { AppointmentCard } from "@/components/AppointmentCard";
 import { LoadingState } from "@/components/LoadingState";
@@ -28,6 +30,29 @@ export default function DashboardScreen() {
 
   const scrollEnabled =
     viewportHeight > 0 && contentHeight > viewportHeight + 8;
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        Alert.alert(
+          "Exit app?",
+          "Are you sure you want to close the app?",
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Exit",
+              style: "destructive",
+              onPress: () => BackHandler.exitApp(),
+            },
+          ],
+        );
+        return true;
+      };
+
+      const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      return () => sub.remove();
+    }, []),
+  );
 
   function openAppointments(filter: string) {
     router.push({ pathname: "/(tabs)/appointments", params: { filter } });

@@ -604,7 +604,7 @@ export default function BookAppointmentScreen() {
                   style={styles.searchInput}
                   value={patientQuery}
                   onChangeText={setPatientQuery}
-                  placeholder="Type name or phone to find patient"
+                  placeholder="Search name or phone"
                   placeholderTextColor={colors.muted}
                   autoCorrect={false}
                   autoCapitalize="none"
@@ -778,7 +778,7 @@ export default function BookAppointmentScreen() {
           <TextArea
             value={notes}
             onChangeText={setNotes}
-            placeholder="Reason / notes for this booking"
+            placeholder="Reason / notes"
             style={{ minHeight: 80 }}
           />
         </Card>

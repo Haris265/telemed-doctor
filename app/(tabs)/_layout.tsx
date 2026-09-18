@@ -41,8 +41,12 @@ export default function TabLayout() {
         options={{
           title: "Home",
           headerShown: true,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "home" : "home-outline"}
+              color={color}
+              size={size}
+            />
           ),
         }}
       />
@@ -50,8 +54,12 @@ export default function TabLayout() {
         name="appointments"
         options={{
           title: "Appointments",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="calendar-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "calendar" : "calendar-outline"}
+              color={color}
+              size={size}
+            />
           ),
         }}
       />
@@ -59,8 +67,12 @@ export default function TabLayout() {
         name="patients"
         options={{
           title: "Patients",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="people-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "people" : "people-outline"}
+              color={color}
+              size={size}
+            />
           ),
         }}
       />
@@ -68,8 +80,12 @@ export default function TabLayout() {
         name="clinics"
         options={{
           title: "Clinics",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="business-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "business" : "business-outline"}
+              color={color}
+              size={size}
+            />
           ),
         }}
       />
@@ -77,8 +93,12 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "person" : "person-outline"}
+              color={color}
+              size={size}
+            />
           ),
         }}
       />

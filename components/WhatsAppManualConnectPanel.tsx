@@ -167,7 +167,7 @@ export function WhatsAppManualConnectPanel({
           label="WABA ID"
           value={wabaId}
           onChangeText={onChangeWabaId}
-          placeholder="WhatsApp Business Account ID"
+          placeholder="WABA ID"
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="number-pad"

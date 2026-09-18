@@ -1,6 +1,7 @@
 import { Stack } from "expo-router";
 
 import { AppHeaderTitle } from "@/components/AppHeaderTitle";
+import { HeaderBackButton } from "@/components/HeaderBackButton";
 import { useTheme } from "@/lib/theme";
 
 export default function ClinicsLayout() {
@@ -22,7 +23,15 @@ export default function ClinicsLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ title: "Clinics" }} />
-      <Stack.Screen name="[id]" options={{ title: "Clinic schedule" }} />
+      <Stack.Screen
+        name="[id]"
+        options={{
+          title: "Clinic schedule",
+          headerLeft: () => (
+            <HeaderBackButton fallbackHref="/(tabs)/clinics" />
+          ),
+        }}
+      />
     </Stack>
   );
 }

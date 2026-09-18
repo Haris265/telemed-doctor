@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { Redirect, Stack, useRouter, useSegments, type Href } from "expo-router";
-import { ActivityIndicator, Modal, Text, View } from "react-native";
+import { ActivityIndicator, Text, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 
+import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { WhatsAppConnectGuide } from "@/components/WhatsAppConnectGuide";
 import { Button, useThemedStyles } from "@/components/ui";
 import { ErrorBoundary as GlobalErrorBoundary } from "@/components/ErrorBoundary";
@@ -20,20 +21,6 @@ const WA_SKIP_KEY = "opd_whatsapp_connect_skipped";
 function WhatsAppConnectPrompt({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const router = useRouter();
   const styles = useThemedStyles((c, f) => ({
-    backdrop: {
-      flex: 1,
-      backgroundColor: "rgba(8, 14, 24, 0.55)",
-      justifyContent: "flex-end",
-    },
-    sheet: {
-      backgroundColor: c.surface,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
-      paddingHorizontal: 20,
-      paddingTop: 20,
-      paddingBottom: 32,
-      gap: 12,
-    },
     title: {
       color: c.text,
       fontFamily: f.sansBold,
@@ -46,36 +33,39 @@ function WhatsAppConnectPrompt({ visible, onClose }: { visible: boolean; onClose
       lineHeight: 20,
       marginBottom: 4,
     },
+    content: {
+      gap: 12,
+    },
   }));
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
-          <Text style={styles.title}>Connect WhatsApp</Text>
-          <Text style={styles.body}>
-            Link your WhatsApp Business number so patients can book and receive
-            visit updates on WhatsApp.
-          </Text>
-          <WhatsAppConnectGuide variant="compact" />
-          <Button
-            label="Connect now"
-            onPress={() => {
-              onClose();
-              router.push("/(tabs)/profile/whatsapp-connect" as Href);
-            }}
-          />
-          <Button
-            label="Skip for now"
-            variant="secondary"
-            onPress={async () => {
-              await storage.setItem(WA_SKIP_KEY, "1");
-              onClose();
-            }}
-          />
-        </View>
-      </View>
-    </Modal>
+    <BottomSheetModal
+      visible={visible}
+      onClose={onClose}
+      contentStyle={styles.content}
+    >
+      <Text style={styles.title}>Connect WhatsApp</Text>
+      <Text style={styles.body}>
+        Link your WhatsApp Business number so patients can book and receive
+        visit updates on WhatsApp.
+      </Text>
+      <WhatsAppConnectGuide variant="compact" />
+      <Button
+        label="Connect now"
+        onPress={() => {
+          onClose();
+          router.push("/(tabs)/profile/whatsapp-connect" as Href);
+        }}
+      />
+      <Button
+        label="Skip for now"
+        variant="secondary"
+        onPress={async () => {
+          await storage.setItem(WA_SKIP_KEY, "1");
+          onClose();
+        }}
+      />
+    </BottomSheetModal>
   );
 }
 

@@ -124,7 +124,7 @@ export default function PatientsScreen() {
           <SearchField
             value={search}
             onChangeText={setSearch}
-            placeholder="Search patient or phone…"
+            placeholder="Search name or phone"
           />
           <Text style={styles.count}>
             {filtered.length} patient{filtered.length === 1 ? "" : "s"}

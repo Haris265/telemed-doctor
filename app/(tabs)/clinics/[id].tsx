@@ -1,9 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -12,9 +9,9 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams, Stack } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppHeaderTitle } from "@/components/AppHeaderTitle";
+import { BottomSheetModal } from "@/components/BottomSheetModal";
 import {
   DayScheduleEditor,
   dayRangesToApiSlots,
@@ -44,6 +41,11 @@ import {
 } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import {
+  formatPkMobile,
+  isValidPkMobile,
+  pkMobileHint,
+} from "@/lib/pkPhone";
 import { pakistanParts, upcomingOpenDateKeys } from "@/lib/slots";
 import type { AvailabilitySlot, ClinicFormPayload, DoctorClinic } from "@/lib/types";
 import { useScreenData } from "@/lib/useScreenData";
@@ -53,7 +55,6 @@ export default function ClinicScheduleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const clinicLinkId = Number(id);
   const { colors, fonts } = useTheme();
-  const insets = useSafeAreaInsets();
   const { doctor } = useAuth();
   const sessionMins = doctor?.session_time || 15;
 
@@ -338,7 +339,7 @@ export default function ClinicScheduleScreen() {
       address: link.clinic.address,
       city: link.clinic.city || "",
       area: link.clinic.area || "",
-      phone: link.clinic.phone || "",
+      phone: formatPkMobile(link.clinic.phone || ""),
     });
     setEditError(null);
     setEditOpen(true);
@@ -346,8 +347,17 @@ export default function ClinicScheduleScreen() {
 
   async function onSaveClinicDetails() {
     if (!link) return;
-    if (!editForm.name.trim() || !editForm.address.trim()) {
-      setEditError("Clinic name and address are required.");
+    if (
+      !editForm.name.trim() ||
+      !editForm.address.trim() ||
+      !editForm.city?.trim() ||
+      !editForm.area?.trim()
+    ) {
+      setEditError("Clinic name, address, city, and area are required.");
+      return;
+    }
+    if (!isValidPkMobile(editForm.phone || "")) {
+      setEditError("Enter a valid 11-digit Pakistani mobile number.");
       return;
     }
     setEditSaving(true);
@@ -597,97 +607,84 @@ export default function ClinicScheduleScreen() {
         )}
       </ScrollView>
 
-      <Modal
+      <BottomSheetModal
         visible={editOpen}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setEditOpen(false)}
+        onClose={() => setEditOpen(false)}
+        keyboardAvoiding
       >
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        <Text
+          style={{
+            color: colors.text,
+            fontSize: 20,
+            fontFamily: fonts.serifBold,
+          }}
         >
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: "rgba(15,23,42,0.45)",
-              justifyContent: "flex-end",
-            }}
-          >
-            <View
-              style={{
-                backgroundColor: colors.surface,
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: 20,
-                padding: 20,
-                paddingBottom: Math.max(insets.bottom, 20),
-                maxHeight: "90%",
-              }}
-            >
-              <ScrollView
-                keyboardShouldPersistTaps="handled"
-                keyboardDismissMode="on-drag"
-              >
-              <Text
-                style={{
-                  color: colors.text,
-                  fontSize: 20,
-                  fontFamily: fonts.serifBold,
-                }}
-              >
-                Edit clinic
-              </Text>
-              <View style={{ height: 12 }} />
-              <Input
-                label="Clinic name"
-                value={editForm.name}
-                onChangeText={(name) => setEditForm((f) => ({ ...f, name }))}
-              />
-              <View style={{ height: 10 }} />
-              <Input
-                label="Address"
-                value={editForm.address}
-                onChangeText={(address) =>
-                  setEditForm((f) => ({ ...f, address }))
-                }
-              />
-              <View style={{ height: 10 }} />
-              <Input
-                label="City"
-                value={editForm.city}
-                onChangeText={(city) => setEditForm((f) => ({ ...f, city }))}
-              />
-              <View style={{ height: 10 }} />
-              <Input
-                label="Area"
-                value={editForm.area}
-                onChangeText={(area) => setEditForm((f) => ({ ...f, area }))}
-              />
-              <View style={{ height: 10 }} />
-              <Input
-                label="Phone"
-                value={editForm.phone}
-                onChangeText={(phone) => setEditForm((f) => ({ ...f, phone }))}
-                keyboardType="phone-pad"
-              />
-              <ErrorText>{editError}</ErrorText>
-              <View style={{ height: 16 }} />
-              <Button
-                label="Update clinic"
-                loading={editSaving}
-                onPress={onSaveClinicDetails}
-              />
-              <View style={{ height: 10 }} />
-              <Button
-                label="Cancel"
-                variant="secondary"
-                onPress={() => setEditOpen(false)}
-              />
-              </ScrollView>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+          Edit clinic
+        </Text>
+        <View style={{ height: 12 }} />
+        <Input
+          label="Clinic name"
+          required
+          value={editForm.name}
+          onChangeText={(name) => setEditForm((f) => ({ ...f, name }))}
+          placeholder="e.g. City Clinic"
+        />
+        <View style={{ height: 10 }} />
+        <Input
+          label="Address"
+          required
+          value={editForm.address}
+          onChangeText={(address) =>
+            setEditForm((f) => ({ ...f, address }))
+          }
+          placeholder="e.g. Street address"
+        />
+        <View style={{ height: 10 }} />
+        <Input
+          label="City"
+          required
+          value={editForm.city}
+          onChangeText={(city) => setEditForm((f) => ({ ...f, city }))}
+          placeholder="e.g. Karachi"
+        />
+        <View style={{ height: 10 }} />
+        <Input
+          label="Area"
+          required
+          value={editForm.area}
+          onChangeText={(area) => setEditForm((f) => ({ ...f, area }))}
+          placeholder="e.g. Gulshan"
+        />
+        <View style={{ height: 10 }} />
+        <Input
+          label="Phone"
+          hint="optional"
+          value={editForm.phone}
+          onChangeText={(phone) =>
+            setEditForm((f) => ({ ...f, phone: formatPkMobile(phone) }))
+          }
+          placeholder="e.g. 0377-7747664"
+          keyboardType="phone-pad"
+          maxLength={12}
+        />
+        <Text
+          style={{
+            color: colors.muted,
+            fontSize: 11,
+            fontFamily: fonts.sans,
+            marginTop: 4,
+          }}
+        >
+          {pkMobileHint}
+        </Text>
+        <View style={{ height: 16 }} />
+        <Button
+          label="Update clinic"
+          loading={editSaving}
+          onPress={onSaveClinicDetails}
+        />
+        <ErrorText>{editError}</ErrorText>
+      </BottomSheetModal>
     </Screen>
   );
 }
