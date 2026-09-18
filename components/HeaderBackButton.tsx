@@ -2,6 +2,7 @@ import { Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { type Href, router } from "expo-router";
 
+import { HEADER_ROW_HEIGHT } from "@/lib/headerConstants";
 import { useTheme } from "@/lib/theme";
 
 type Props = {
@@ -34,6 +35,7 @@ export function HeaderBackButton({ fallbackHref }: Props) {
 
 const styles = StyleSheet.create({
   back: {
+    height: HEADER_ROW_HEIGHT,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 4,

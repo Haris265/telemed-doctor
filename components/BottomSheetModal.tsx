@@ -64,7 +64,9 @@ export function BottomSheetModal({
   closeDisabledRef.current = closeDisabled;
 
   const [windowH, setWindowH] = useState(() => Dimensions.get("window").height);
+  const [frameH, setFrameH] = useState(() => Dimensions.get("window").height);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
     const sub = Dimensions.addEventListener("change", ({ window }) => {
@@ -78,6 +80,7 @@ export function BottomSheetModal({
       closingRef.current = false;
       translateY.setValue(0);
       setKeyboardOpen(false);
+      setKeyboardHeight(0);
       scrollOffsetRef.current = 0;
     }
   }, [visible, translateY]);
@@ -85,6 +88,7 @@ export function BottomSheetModal({
   useEffect(() => {
     if (!keyboardAvoiding || !visible) {
       setKeyboardOpen(false);
+      setKeyboardHeight(0);
       return;
     }
 
@@ -93,8 +97,14 @@ export function BottomSheetModal({
     const hideEvent =
       Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
 
-    const onShow = Keyboard.addListener(showEvent, () => setKeyboardOpen(true));
-    const onHide = Keyboard.addListener(hideEvent, () => setKeyboardOpen(false));
+    const onShow = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardOpen(true);
+      setKeyboardHeight(e.endCoordinates?.height ?? 0);
+    });
+    const onHide = Keyboard.addListener(hideEvent, () => {
+      setKeyboardOpen(false);
+      setKeyboardHeight(0);
+    });
 
     return () => {
       onShow.remove();
@@ -106,7 +116,11 @@ export function BottomSheetModal({
     const input = TextInput.State.currentlyFocusedInput?.();
     if (!input || !scrollRef.current) return;
 
-    const visibleBottom = Dimensions.get("window").height - 16;
+    const visibleBottom =
+      Dimensions.get("window").height -
+      Math.max(keyboardHeight, 0) -
+      Math.max(insets.bottom, 8) -
+      16;
 
     (
       input as unknown as {
@@ -116,8 +130,15 @@ export function BottomSheetModal({
       }
     ).measureInWindow((_x, y, _w, h) => {
       const inputBottom = y + h;
-      if (inputBottom <= visibleBottom) return;
-      const delta = inputBottom - visibleBottom + 24;
+      const inputTop = y;
+      const visibleTop = insets.top + 12;
+      let delta = 0;
+      if (inputBottom > visibleBottom) {
+        delta = inputBottom - visibleBottom + 24;
+      } else if (inputTop < visibleTop) {
+        delta = inputTop - visibleTop;
+      }
+      if (delta === 0) return;
       const nextY = Math.max(0, scrollOffsetRef.current + delta);
       scrollRef.current?.scrollTo({ y: nextY, animated: true });
     });
@@ -125,10 +146,14 @@ export function BottomSheetModal({
 
   useEffect(() => {
     if (!keyboardAvoiding || !keyboardOpen) return;
-    const t = setTimeout(scrollFocusedIntoView, 100);
-    return () => clearTimeout(t);
+    const t1 = setTimeout(scrollFocusedIntoView, 80);
+    const t2 = setTimeout(scrollFocusedIntoView, 280);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [keyboardAvoiding, keyboardOpen, windowH]);
+  }, [keyboardAvoiding, keyboardOpen, keyboardHeight, windowH, insets.top]);
 
   const requestClose = () => {
     if (closeDisabledRef.current) return;
@@ -186,8 +211,17 @@ export function BottomSheetModal({
     [translateY],
   );
 
-  const sheetMaxHeight = resolveMaxHeightPx(maxHeight, windowH);
-  const scrollMaxHeight = Math.max(160, sheetMaxHeight - 56 - Math.max(insets.bottom, 20));
+  // Keep sheet below status bar / notch. Keyboard space comes from KAV
+  // padding — size sheet from measured frame height so we don't double-count.
+  const topGuard = Math.max(insets.top, Platform.OS === "android" ? 24 : 12);
+  const sheetMaxHeight = Math.min(
+    resolveMaxHeightPx(maxHeight, windowH),
+    Math.max(200, frameH - 8),
+  );
+  const scrollMaxHeight = Math.max(
+    160,
+    sheetMaxHeight - 56 - Math.max(insets.bottom, 20),
+  );
 
   const sheet = (
     <Animated.View
@@ -243,7 +277,16 @@ export function BottomSheetModal({
         accessibilityRole="button"
         accessibilityLabel="Dismiss"
       />
-      {sheet}
+      <View
+        style={[styles.sheetColumn, { paddingTop: topGuard }]}
+        onLayout={(e) => {
+          const h = e.nativeEvent.layout.height;
+          if (h > 0) setFrameH(h);
+        }}
+        pointerEvents="box-none"
+      >
+        {sheet}
+      </View>
     </View>
   );
 
@@ -276,8 +319,11 @@ const styles = StyleSheet.create({
   },
   root: {
     flex: 1,
-    justifyContent: "flex-end",
     backgroundColor: DIM,
+  },
+  sheetColumn: {
+    flex: 1,
+    justifyContent: "flex-end",
   },
   sheet: {
     borderTopLeftRadius: 20,

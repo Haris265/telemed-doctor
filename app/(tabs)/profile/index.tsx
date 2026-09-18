@@ -20,6 +20,7 @@ export default function ProfileScreen() {
   const { doctor, user, signOut, refreshMe } = useAuth();
   const { colors } = useTheme();
   const [waStatus, setWaStatus] = useState<DoctorWhatsAppStatus | null>(null);
+  const [waStatusReady, setWaStatusReady] = useState(false);
   const [waBusy, setWaBusy] = useState(false);
   const styles = useThemedStyles((c, f) => ({
     headerRow: {
@@ -56,13 +57,15 @@ export default function ProfileScreen() {
       fontSize: 14,
       fontFamily: f.sans,
     },
+    field: {
+      gap: 2,
+    },
     label: {
       color: c.muted,
       fontSize: 12,
       fontFamily: f.sansBold,
       textTransform: "uppercase" as const,
       letterSpacing: 0.6,
-      marginTop: 4,
     },
     value: {
       color: c.text,
@@ -105,11 +108,14 @@ export default function ProfileScreen() {
 
   const load = useCallback(async () => {
     await refreshMe();
+    setWaStatusReady(false);
     try {
       const status = await api.whatsappStatus();
       setWaStatus(status);
     } catch {
       setWaStatus(null);
+    } finally {
+      setWaStatusReady(true);
     }
   }, [refreshMe]);
 
@@ -129,7 +135,7 @@ export default function ProfileScreen() {
   function onDisconnectWhatsApp() {
     Alert.alert(
       "Disconnect WhatsApp",
-      "Patients will no longer reach you on this WhatsApp number through PatientCare Doctor.",
+      "Patients will no longer reach you on this WhatsApp number through Patient Care Doctor.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -192,20 +198,26 @@ export default function ProfileScreen() {
               </View>
             </View>
 
-            <Text style={styles.label}>Specialities</Text>
-            <Text style={styles.value}>
-              {doctor?.specialities?.map((s) => s.name).join(", ") || "—"}
-            </Text>
+            <View style={styles.field}>
+              <Text style={styles.label}>Specialities</Text>
+              <Text style={styles.value}>
+                {doctor?.specialities?.map((s) => s.name).join(", ") || "—"}
+              </Text>
+            </View>
 
-            <Text style={styles.label}>Session time</Text>
-            <Text style={styles.value}>
-              {doctor?.session_time ?? "—"} minutes
-            </Text>
+            <View style={styles.field}>
+              <Text style={styles.label}>Session time</Text>
+              <Text style={styles.value}>
+                {doctor?.session_time ?? "—"} minutes
+              </Text>
+            </View>
 
-            <Text style={styles.label}>Status</Text>
-            <Text style={styles.value}>
-              {doctor?.is_active ? "Active" : "Inactive"}
-            </Text>
+            <View style={styles.field}>
+              <Text style={styles.label}>Status</Text>
+              <Text style={styles.value}>
+                {doctor?.is_active ? "Active" : "Inactive"}
+              </Text>
+            </View>
 
             <View style={{ height: 8 }} />
             <Button
@@ -226,46 +238,58 @@ export default function ProfileScreen() {
 
         <Card style={{ gap: 10 }}>
           <Text style={styles.sectionTitle}>WhatsApp</Text>
-          <Text style={styles.sectionHint}>
-            {waStatus?.connected
-              ? "Patients can book and receive visit media on your linked WhatsApp Business number."
-              : "Follow the steps on the next screen to link your WhatsApp Business number via Meta."}
-          </Text>
-
-          <Text style={styles.label}>Connection</Text>
-          <Text style={styles.value}>
-            {waStatus?.connected
-              ? `Connected${waStatus.display_phone ? ` · ${waStatus.display_phone}` : ""}`
-              : waStatus?.status === "error"
-                ? "Error — reconnect required"
-                : "Not connected"}
-          </Text>
-
-          {waStatus?.last_error && !waStatus.connected ? (
-            <Text style={styles.error}>{waStatus.last_error}</Text>
-          ) : null}
-
-          {waStatus?.connected ? (
-            <>
-              <Button
-                label={waBusy ? "Working…" : "Reconnect"}
-                variant="secondary"
-                onPress={() => router.push("/(tabs)/profile/whatsapp-connect" as Href)}
-                disabled={waBusy}
-              />
-              <Button
-                label="Disconnect"
-                variant="danger"
-                onPress={onDisconnectWhatsApp}
-                disabled={waBusy}
-              />
-            </>
+          {!waStatusReady ? (
+            <LoadingState label="Checking WhatsApp…" />
           ) : (
-            <Button
-              label="Connect WhatsApp"
-              onPress={() => router.push("/(tabs)/profile/whatsapp-connect" as Href)}
-              disabled={waBusy}
-            />
+            <>
+              <Text style={styles.sectionHint}>
+                {waStatus?.connected
+                  ? "Patients can book and receive visit media on your linked WhatsApp Business number."
+                  : "Follow the steps on the next screen to link your WhatsApp Business number via Meta."}
+              </Text>
+
+              <View style={styles.field}>
+                <Text style={styles.label}>Connection</Text>
+                <Text style={styles.value}>
+                  {waStatus?.connected
+                    ? `Connected${waStatus.display_phone ? ` · ${waStatus.display_phone}` : ""}`
+                    : waStatus?.status === "error"
+                      ? "Error — reconnect required"
+                      : "Not connected"}
+                </Text>
+              </View>
+
+              {waStatus?.last_error && !waStatus.connected ? (
+                <Text style={styles.error}>{waStatus.last_error}</Text>
+              ) : null}
+
+              {waStatus?.connected ? (
+                <>
+                  <Button
+                    label={waBusy ? "Working…" : "Reconnect"}
+                    variant="secondary"
+                    onPress={() =>
+                      router.push("/(tabs)/profile/whatsapp-connect" as Href)
+                    }
+                    disabled={waBusy}
+                  />
+                  <Button
+                    label="Disconnect"
+                    variant="danger"
+                    onPress={onDisconnectWhatsApp}
+                    disabled={waBusy}
+                  />
+                </>
+              ) : (
+                <Button
+                  label="Connect WhatsApp"
+                  onPress={() =>
+                    router.push("/(tabs)/profile/whatsapp-connect" as Href)
+                  }
+                  disabled={waBusy}
+                />
+              )}
+            </>
           )}
         </Card>
 

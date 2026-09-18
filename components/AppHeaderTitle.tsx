@@ -1,6 +1,7 @@
 import { StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
+import { HEADER_ROW_HEIGHT } from "@/lib/headerConstants";
 import { useTheme } from "@/lib/theme";
 
 export function AppHeaderTitle() {
@@ -15,8 +16,9 @@ export function AppHeaderTitle() {
 
 const styles = StyleSheet.create({
   wrap: {
-    alignSelf: "flex-start",
-    alignItems: "flex-start",
+    height: HEADER_ROW_HEIGHT,
+    alignSelf: "center",
+    alignItems: "center",
     justifyContent: "center",
   },
 });

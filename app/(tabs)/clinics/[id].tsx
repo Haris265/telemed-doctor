@@ -10,7 +10,6 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams, Stack } from "expo-router";
 
-import { AppHeaderTitle } from "@/components/AppHeaderTitle";
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import {
   DayScheduleEditor,
@@ -42,10 +41,11 @@ import {
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import {
-  formatPkMobile,
-  isValidPkMobile,
-  pkMobileHint,
-} from "@/lib/pkPhone";
+  hasClinicFieldErrors,
+  validateClinicForm,
+  type ClinicFieldErrors,
+} from "@/lib/clinicForm";
+import { formatPkMobile, pkMobileHint } from "@/lib/pkPhone";
 import { pakistanParts, upcomingOpenDateKeys } from "@/lib/slots";
 import type { AvailabilitySlot, ClinicFormPayload, DoctorClinic } from "@/lib/types";
 import { useScreenData } from "@/lib/useScreenData";
@@ -93,6 +93,7 @@ export default function ClinicScheduleScreen() {
   });
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+  const [editFieldErrors, setEditFieldErrors] = useState<ClinicFieldErrors>({});
   const [deleting, setDeleting] = useState(false);
 
   const applyDayFromSlots = useCallback(
@@ -342,22 +343,29 @@ export default function ClinicScheduleScreen() {
       phone: formatPkMobile(link.clinic.phone || ""),
     });
     setEditError(null);
+    setEditFieldErrors({});
     setEditOpen(true);
+  }
+
+  function patchEditForm<K extends keyof ClinicFormPayload>(
+    key: K,
+    value: ClinicFormPayload[K],
+  ) {
+    setEditForm((f) => ({ ...f, [key]: value }));
+    setEditFieldErrors((prev) => {
+      if (!prev[key as keyof ClinicFieldErrors]) return prev;
+      const next = { ...prev };
+      delete next[key as keyof ClinicFieldErrors];
+      return next;
+    });
   }
 
   async function onSaveClinicDetails() {
     if (!link) return;
-    if (
-      !editForm.name.trim() ||
-      !editForm.address.trim() ||
-      !editForm.city?.trim() ||
-      !editForm.area?.trim()
-    ) {
-      setEditError("Clinic name, address, city, and area are required.");
-      return;
-    }
-    if (!isValidPkMobile(editForm.phone || "")) {
-      setEditError("Enter a valid 11-digit Pakistani mobile number.");
+    const errors = validateClinicForm(editForm);
+    setEditFieldErrors(errors);
+    if (hasClinicFieldErrors(errors)) {
+      setEditError(null);
       return;
     }
     setEditSaving(true);
@@ -372,6 +380,7 @@ export default function ClinicScheduleScreen() {
       });
       setLink(updated);
       setEditOpen(false);
+      setEditFieldErrors({});
     } catch (e) {
       setEditError(e instanceof Error ? e.message : "Could not update clinic.");
     } finally {
@@ -421,7 +430,6 @@ export default function ClinicScheduleScreen() {
       <Stack.Screen
         options={{
           headerShown: true,
-          headerTitle: () => <AppHeaderTitle />,
         }}
       />
       <ScrollView
@@ -626,7 +634,8 @@ export default function ClinicScheduleScreen() {
           label="Clinic name"
           required
           value={editForm.name}
-          onChangeText={(name) => setEditForm((f) => ({ ...f, name }))}
+          error={editFieldErrors.name}
+          onChangeText={(name) => patchEditForm("name", name)}
           placeholder="e.g. City Clinic"
         />
         <View style={{ height: 10 }} />
@@ -634,9 +643,8 @@ export default function ClinicScheduleScreen() {
           label="Address"
           required
           value={editForm.address}
-          onChangeText={(address) =>
-            setEditForm((f) => ({ ...f, address }))
-          }
+          error={editFieldErrors.address}
+          onChangeText={(address) => patchEditForm("address", address)}
           placeholder="e.g. Street address"
         />
         <View style={{ height: 10 }} />
@@ -644,7 +652,8 @@ export default function ClinicScheduleScreen() {
           label="City"
           required
           value={editForm.city}
-          onChangeText={(city) => setEditForm((f) => ({ ...f, city }))}
+          error={editFieldErrors.city}
+          onChangeText={(city) => patchEditForm("city", city)}
           placeholder="e.g. Karachi"
         />
         <View style={{ height: 10 }} />
@@ -652,7 +661,8 @@ export default function ClinicScheduleScreen() {
           label="Area"
           required
           value={editForm.area}
-          onChangeText={(area) => setEditForm((f) => ({ ...f, area }))}
+          error={editFieldErrors.area}
+          onChangeText={(area) => patchEditForm("area", area)}
           placeholder="e.g. Gulshan"
         />
         <View style={{ height: 10 }} />
@@ -660,8 +670,9 @@ export default function ClinicScheduleScreen() {
           label="Phone"
           hint="optional"
           value={editForm.phone}
+          error={editFieldErrors.phone}
           onChangeText={(phone) =>
-            setEditForm((f) => ({ ...f, phone: formatPkMobile(phone) }))
+            patchEditForm("phone", formatPkMobile(phone))
           }
           placeholder="e.g. 0377-7747664"
           keyboardType="phone-pad"

@@ -27,6 +27,11 @@ import {
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
+import {
+  digitsOnly,
+  formatPkMobile,
+  pkMobileHint,
+} from "@/lib/pkPhone";
 import { openSlotsForDate } from "@/lib/slots";
 import { useTheme } from "@/lib/theme";
 import type {
@@ -62,7 +67,9 @@ export default function BookAppointmentScreen() {
   const [selectedUuid, setSelectedUuid] = useState(params.patientUuid || "");
   const [selectedName, setSelectedName] = useState(params.patientName || "");
   const [selectedPhone, setSelectedPhone] = useState(params.patientPhone || "");
-  const [phone, setPhone] = useState(params.patientPhone || "");
+  const [phone, setPhone] = useState(
+    formatPkMobile(params.patientPhone || ""),
+  );
   const [newName, setNewName] = useState(params.patientName || "");
   const [lookupHint, setLookupHint] = useState("");
   const [lookupLoading, setLookupLoading] = useState(false);
@@ -314,7 +321,7 @@ export default function BookAppointmentScreen() {
           setMode("list");
         } else if (params.patientPhone) {
           setMode("phone");
-          setPhone(params.patientPhone);
+          setPhone(formatPkMobile(params.patientPhone));
           setNewName(params.patientName || "");
         }
       }
@@ -428,14 +435,16 @@ export default function BookAppointmentScreen() {
     !!clinicId &&
     !!tokenDate &&
     !!slotTime &&
-    (mode === "list" ? !!selectedUuid : !!phone.trim()) &&
+    (mode === "list"
+      ? !!selectedUuid
+      : digitsOnly(phone).length === 11) &&
     !submitting;
 
   const bookHint = !canBook
     ? mode === "list" && !selectedUuid
       ? "Select a patient to continue"
-      : mode === "phone" && !phone.trim()
-        ? "Enter patient phone to continue"
+      : mode === "phone" && digitsOnly(phone).length !== 11
+        ? "Enter a valid Pakistani mobile (03XX-XXXXXXX)"
         : !clinicId
           ? "Select a clinic"
           : !tokenDate
@@ -448,17 +457,17 @@ export default function BookAppointmentScreen() {
       : "";
 
   const onLookup = async () => {
-    const raw = phone.trim();
-    if (!raw) {
-      setLookupHint("Enter a phone number.");
+    const digits = digitsOnly(phone);
+    if (digits.length !== 11) {
+      setLookupHint("Enter a valid Pakistani mobile (03XX-XXXXXXX).");
       return;
     }
     setLookupLoading(true);
     setLookupHint("");
     try {
-      const found = await api.lookupPatient(raw);
+      const found = await api.lookupPatient(digits);
       if (found) {
-        setPhone(found.phone);
+        setPhone(formatPkMobile(found.phone));
         setNewName(found.name);
         setLookupHint(`Found: ${found.name}`);
       } else {
@@ -498,8 +507,8 @@ export default function BookAppointmentScreen() {
         setSubmitting(false);
         return;
       }
-      if (mode === "phone" && !phone.trim()) {
-        setError("Enter patient phone.");
+      if (mode === "phone" && digitsOnly(phone).length !== 11) {
+        setError("Enter a valid Pakistani mobile (03XX-XXXXXXX).");
         setSubmitting(false);
         return;
       }
@@ -514,7 +523,7 @@ export default function BookAppointmentScreen() {
               notes: notes.trim() || undefined,
             }
           : {
-              phone: phone.trim(),
+              phone: digitsOnly(phone),
               name: newName.trim() || undefined,
               clinic_id: clinicId,
               token_date: tokenDate,
@@ -545,7 +554,7 @@ export default function BookAppointmentScreen() {
     <Screen style={{ paddingHorizontal: 0, paddingTop: 0 }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior="padding"
         keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
       >
         <ScrollView
@@ -649,10 +658,11 @@ export default function BookAppointmentScreen() {
               <Input
                 label="Phone"
                 value={phone}
-                onChangeText={setPhone}
+                onChangeText={(v) => setPhone(formatPkMobile(v))}
                 keyboardType="phone-pad"
-                placeholder="03xxxxxxxxx"
+                placeholder="e.g. 0377-7747664"
               />
+              <Text style={styles.hint}>{pkMobileHint}</Text>
               <Button
                 label={lookupLoading ? "Looking up…" : "Lookup phone"}
                 variant="secondary"

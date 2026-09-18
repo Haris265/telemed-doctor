@@ -111,7 +111,7 @@ export function AuthShell({ title, subtitle, children, showBack }: Props) {
       <ClinicBackdrop />
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior="padding"
         keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
       >
         <ScrollView

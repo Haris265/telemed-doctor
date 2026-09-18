@@ -19,12 +19,50 @@ import {
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
+type FieldErrors = {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  sessionTime?: string;
+};
+
+function validateProfile(fields: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  sessionTime: string;
+}): FieldErrors {
+  const errors: FieldErrors = {};
+  const first = fields.firstName.trim();
+  const last = fields.lastName.trim();
+  const nextEmail = fields.email.trim().toLowerCase();
+  const session = Number(fields.sessionTime);
+
+  if (!first) errors.firstName = "Enter first name.";
+  if (!last) errors.lastName = "Enter last name.";
+  if (!nextEmail) errors.email = "Enter email address.";
+  else if (!nextEmail.includes("@")) errors.email = "Enter a valid email address.";
+  if (!fields.sessionTime.trim()) {
+    errors.sessionTime = "Enter session time in minutes.";
+  } else if (
+    !Number.isFinite(session) ||
+    session < 1 ||
+    !Number.isInteger(session)
+  ) {
+    errors.sessionTime =
+      "Session time must be a whole number of at least 1 minute.";
+  }
+
+  return errors;
+}
+
 export default function EditProfileScreen() {
   const { doctor, refreshMe } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [sessionTime, setSessionTime] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -36,27 +74,32 @@ export default function EditProfileScreen() {
     setSessionTime(String(doctor.session_time ?? ""));
   }, [doctor]);
 
+  function clearFieldError(key: keyof FieldErrors) {
+    setFieldErrors((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  }
+
   async function onSave() {
+    const errors = validateProfile({
+      firstName,
+      lastName,
+      email,
+      sessionTime,
+    });
+    setFieldErrors(errors);
+    setError(null);
+    if (Object.keys(errors).length > 0) return;
+
     const first = firstName.trim();
     const last = lastName.trim();
     const nextEmail = email.trim().toLowerCase();
     const session = Number(sessionTime);
 
-    if (!first || !last) {
-      setError("Enter first and last name.");
-      return;
-    }
-    if (!nextEmail || !nextEmail.includes("@")) {
-      setError("Enter a valid email address.");
-      return;
-    }
-    if (!Number.isFinite(session) || session < 1 || !Number.isInteger(session)) {
-      setError("Session time must be a whole number of at least 1 minute.");
-      return;
-    }
-
     setSaving(true);
-    setError(null);
     try {
       await api.updateMe({
         first_name: first,
@@ -77,7 +120,7 @@ export default function EditProfileScreen() {
     <Screen>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior="padding"
         keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
       >
         <ScrollView
@@ -99,31 +142,51 @@ export default function EditProfileScreen() {
             <Input
               label="First name"
               value={firstName}
-              onChangeText={setFirstName}
+              onChangeText={(t) => {
+                setFirstName(t);
+                clearFieldError("firstName");
+              }}
+              placeholder="e.g. Hammad"
               autoCapitalize="words"
               autoCorrect={false}
+              error={fieldErrors.firstName}
             />
             <Input
               label="Last name"
               value={lastName}
-              onChangeText={setLastName}
+              onChangeText={(t) => {
+                setLastName(t);
+                clearFieldError("lastName");
+              }}
+              placeholder="e.g. Yousuf"
               autoCapitalize="words"
               autoCorrect={false}
+              error={fieldErrors.lastName}
             />
             <Input
               label="Email"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(t) => {
+                setEmail(t);
+                clearFieldError("email");
+              }}
+              placeholder="doctor@example.com"
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="email-address"
               textContentType="emailAddress"
+              error={fieldErrors.email}
             />
             <Input
               label="Session time (minutes)"
               value={sessionTime}
-              onChangeText={setSessionTime}
+              onChangeText={(t) => {
+                setSessionTime(t);
+                clearFieldError("sessionTime");
+              }}
+              placeholder="15"
               keyboardType="number-pad"
+              error={fieldErrors.sessionTime}
             />
             <ErrorText>{error}</ErrorText>
             <Button

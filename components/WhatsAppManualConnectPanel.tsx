@@ -1,4 +1,5 @@
 import { Text, View } from "react-native";
+import type { ComponentRef } from "react";
 
 import { Badge, Button, Card, Input, useThemedStyles } from "@/components/ui";
 
@@ -8,6 +9,14 @@ const HOW_TO_STEPS = [
   "Copy Temporary access token, Phone number ID, and WhatsApp Business Account ID",
   "Paste them below and tap Connect for testing",
 ];
+
+export type ManualConnectFieldKey =
+  | "accessToken"
+  | "phoneNumberId"
+  | "wabaId"
+  | "displayPhone";
+
+type FieldAnchor = ComponentRef<typeof View>;
 
 type Props = {
   accessToken: string;
@@ -20,7 +29,8 @@ type Props = {
   onChangeWabaId: (value: string) => void;
   onChangeDisplayPhone: (value: string) => void;
   onConnect: () => void;
-  onFieldFocus?: () => void;
+  onFieldFocus?: (key: ManualConnectFieldKey) => void;
+  registerFieldAnchor?: (key: ManualConnectFieldKey, node: FieldAnchor | null) => void;
 };
 
 export function WhatsAppManualConnectPanel({
@@ -35,6 +45,7 @@ export function WhatsAppManualConnectPanel({
   onChangeDisplayPhone,
   onConnect,
   onFieldFocus,
+  registerFieldAnchor,
 }: Props) {
   const styles = useThemedStyles((c, f) => ({
     card: {
@@ -125,7 +136,11 @@ export function WhatsAppManualConnectPanel({
         </View>
       ))}
 
-      <View style={styles.fieldBlock}>
+      <View
+        style={styles.fieldBlock}
+        ref={(node) => registerFieldAnchor?.("accessToken", node)}
+        collapsable={false}
+      >
         <Input
           label="Access token"
           value={accessToken}
@@ -135,7 +150,7 @@ export function WhatsAppManualConnectPanel({
           autoCorrect={false}
           secureTextEntry
           editable={!busy}
-          onFocus={onFieldFocus}
+          onFocus={() => onFieldFocus?.("accessToken")}
         />
         <Text style={styles.helper}>
           Long secret from API Setup (“Temporary access token”). Lets PatientCare
@@ -144,7 +159,11 @@ export function WhatsAppManualConnectPanel({
         </Text>
       </View>
 
-      <View style={styles.fieldBlock}>
+      <View
+        style={styles.fieldBlock}
+        ref={(node) => registerFieldAnchor?.("phoneNumberId", node)}
+        collapsable={false}
+      >
         <Input
           label="Phone number ID"
           value={phoneNumberId}
@@ -154,7 +173,7 @@ export function WhatsAppManualConnectPanel({
           autoCorrect={false}
           keyboardType="number-pad"
           editable={!busy}
-          onFocus={onFieldFocus}
+          onFocus={() => onFieldFocus?.("phoneNumberId")}
         />
         <Text style={styles.helper}>
           Numeric ID shown next to your test number on API Setup — not the phone
@@ -162,7 +181,11 @@ export function WhatsAppManualConnectPanel({
         </Text>
       </View>
 
-      <View style={styles.fieldBlock}>
+      <View
+        style={styles.fieldBlock}
+        ref={(node) => registerFieldAnchor?.("wabaId", node)}
+        collapsable={false}
+      >
         <Input
           label="WABA ID"
           value={wabaId}
@@ -172,7 +195,7 @@ export function WhatsAppManualConnectPanel({
           autoCorrect={false}
           keyboardType="number-pad"
           editable={!busy}
-          onFocus={onFieldFocus}
+          onFocus={() => onFieldFocus?.("wabaId")}
         />
         <Text style={styles.helper}>
           WhatsApp Business Account ID on the same API Setup page (or Business
@@ -180,7 +203,11 @@ export function WhatsAppManualConnectPanel({
         </Text>
       </View>
 
-      <View style={styles.fieldBlock}>
+      <View
+        style={styles.fieldBlock}
+        ref={(node) => registerFieldAnchor?.("displayPhone", node)}
+        collapsable={false}
+      >
         <Input
           label="Display phone (optional)"
           value={displayPhone}
@@ -188,7 +215,7 @@ export function WhatsAppManualConnectPanel({
           placeholder="923001234567"
           keyboardType="phone-pad"
           editable={!busy}
-          onFocus={onFieldFocus}
+          onFocus={() => onFieldFocus?.("displayPhone")}
         />
         <Text style={styles.helper}>
           Number as patients see it. Leave blank to auto-fetch from Meta.

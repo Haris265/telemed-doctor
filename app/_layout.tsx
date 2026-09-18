@@ -1,7 +1,10 @@
+import "react-native-gesture-handler";
+
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { Redirect, Stack, useRouter, useSegments, type Href } from "expo-router";
 import { ActivityIndicator, Text, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 
@@ -11,6 +14,7 @@ import { Button, useThemedStyles } from "@/components/ui";
 import { ErrorBoundary as GlobalErrorBoundary } from "@/components/ErrorBoundary";
 import { api } from "@/lib/api";
 import { AuthProvider, useAuth } from "@/lib/auth";
+import { screenHeaderOptions } from "@/lib/screenHeader";
 import { storage } from "@/lib/storage";
 import { ThemeProvider, useTheme } from "@/lib/theme";
 
@@ -126,7 +130,7 @@ function Gate({ children }: { children: ReactNode }) {
 }
 
 function ThemedRoot() {
-  const { colors } = useTheme();
+  const { colors, fonts } = useTheme();
 
   return (
     <>
@@ -137,13 +141,7 @@ function ThemedRoot() {
             screenOptions={{
               headerShown: false,
               contentStyle: { backgroundColor: colors.bg },
-              headerTintColor: colors.text,
-              headerStyle: { backgroundColor: colors.surface },
-              headerTitleStyle: {
-                fontFamily: "Manrope_700Bold",
-                color: colors.text,
-              },
-              headerShadowVisible: false,
+              ...screenHeaderOptions(colors, fonts),
             }}
           >
             <Stack.Screen name="(tabs)" />
@@ -158,11 +156,13 @@ function ThemedRoot() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <GlobalErrorBoundary>
-        <ThemeProvider>
-          <ThemedRoot />
-        </ThemeProvider>
-      </GlobalErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <GlobalErrorBoundary>
+          <ThemeProvider>
+            <ThemedRoot />
+          </ThemeProvider>
+        </GlobalErrorBoundary>
+      </GestureHandlerRootView>
     </SafeAreaProvider>
   );
 }

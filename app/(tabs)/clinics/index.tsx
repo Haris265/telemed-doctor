@@ -25,10 +25,11 @@ import {
 } from "@/components/ui";
 import { api } from "@/lib/api";
 import {
-  formatPkMobile,
-  isValidPkMobile,
-  pkMobileHint,
-} from "@/lib/pkPhone";
+  hasClinicFieldErrors,
+  validateClinicForm,
+  type ClinicFieldErrors,
+} from "@/lib/clinicForm";
+import { formatPkMobile, pkMobileHint } from "@/lib/pkPhone";
 import type { ClinicFormPayload, DoctorClinic } from "@/lib/types";
 import { useScreenData } from "@/lib/useScreenData";
 import { useTheme } from "@/lib/theme";
@@ -136,6 +137,7 @@ export default function ClinicsScreen() {
   const [form, setForm] = useState<ClinicFormPayload>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<ClinicFieldErrors>({});
 
   const load = useCallback(async () => {
     const data = await api.clinics();
@@ -148,6 +150,7 @@ export default function ClinicsScreen() {
     setEditing(null);
     setForm(emptyForm);
     setFormError(null);
+    setFieldErrors({});
     setModalOpen(true);
   }
 
@@ -155,21 +158,28 @@ export default function ClinicsScreen() {
     setEditing(item);
     setForm(clinicToForm(item));
     setFormError(null);
+    setFieldErrors({});
     setModalOpen(true);
   }
 
+  function patchForm<K extends keyof ClinicFormPayload>(
+    key: K,
+    value: ClinicFormPayload[K],
+  ) {
+    setForm((f) => ({ ...f, [key]: value }));
+    setFieldErrors((prev) => {
+      if (!prev[key as keyof ClinicFieldErrors]) return prev;
+      const next = { ...prev };
+      delete next[key as keyof ClinicFieldErrors];
+      return next;
+    });
+  }
+
   async function onSave() {
-    if (
-      !form.name.trim() ||
-      !form.address.trim() ||
-      !form.city?.trim() ||
-      !form.area?.trim()
-    ) {
-      setFormError("Clinic name, address, city, and area are required.");
-      return;
-    }
-    if (!isValidPkMobile(form.phone || "")) {
-      setFormError("Enter a valid 11-digit Pakistani mobile number.");
+    const errors = validateClinicForm(form);
+    setFieldErrors(errors);
+    if (hasClinicFieldErrors(errors)) {
+      setFormError(null);
       return;
     }
     const payload = {
@@ -193,6 +203,7 @@ export default function ClinicsScreen() {
       setModalOpen(false);
       setEditing(null);
       setForm(emptyForm);
+      setFieldErrors({});
       await load();
     } catch (e) {
       setFormError(e instanceof Error ? e.message : "Could not save clinic.");
@@ -320,7 +331,8 @@ export default function ClinicsScreen() {
           label="Clinic name"
           required
           value={form.name}
-          onChangeText={(name) => setForm((f) => ({ ...f, name }))}
+          error={fieldErrors.name}
+          onChangeText={(name) => patchForm("name", name)}
           placeholder="e.g. City Clinic"
         />
         <View style={{ height: 10 }} />
@@ -328,7 +340,8 @@ export default function ClinicsScreen() {
           label="Address"
           required
           value={form.address}
-          onChangeText={(address) => setForm((f) => ({ ...f, address }))}
+          error={fieldErrors.address}
+          onChangeText={(address) => patchForm("address", address)}
           placeholder="e.g. Street address"
         />
         <View style={{ height: 10 }} />
@@ -336,7 +349,8 @@ export default function ClinicsScreen() {
           label="City"
           required
           value={form.city}
-          onChangeText={(city) => setForm((f) => ({ ...f, city }))}
+          error={fieldErrors.city}
+          onChangeText={(city) => patchForm("city", city)}
           placeholder="e.g. Karachi"
         />
         <View style={{ height: 10 }} />
@@ -344,7 +358,8 @@ export default function ClinicsScreen() {
           label="Area"
           required
           value={form.area}
-          onChangeText={(area) => setForm((f) => ({ ...f, area }))}
+          error={fieldErrors.area}
+          onChangeText={(area) => patchForm("area", area)}
           placeholder="e.g. Gulshan"
         />
         <View style={{ height: 10 }} />
@@ -352,9 +367,8 @@ export default function ClinicsScreen() {
           label="Phone"
           hint="optional"
           value={form.phone}
-          onChangeText={(phone) =>
-            setForm((f) => ({ ...f, phone: formatPkMobile(phone) }))
-          }
+          error={fieldErrors.phone}
+          onChangeText={(phone) => patchForm("phone", formatPkMobile(phone))}
           placeholder="e.g. 0377-7747664"
           keyboardType="phone-pad"
           maxLength={12}

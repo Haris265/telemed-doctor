@@ -158,6 +158,7 @@ export function Input(
     label?: string;
     hint?: string;
     required?: boolean;
+    error?: string;
     secureToggle?: boolean;
   },
 ) {
@@ -166,6 +167,7 @@ export function Input(
     label,
     hint,
     required,
+    error,
     style,
     secureToggle,
     secureTextEntry,
@@ -230,7 +232,7 @@ export function Input(
             {
               backgroundColor: colors.surfaceAlt,
               borderWidth: 1,
-              borderColor: colors.border,
+              borderColor: error ? colors.danger : colors.border,
               borderRadius: 12,
               paddingHorizontal: 14,
               paddingVertical: 12,
@@ -264,6 +266,17 @@ export function Input(
           </Pressable>
         ) : null}
       </View>
+      {error ? (
+        <Text
+          style={{
+            color: colors.danger,
+            fontSize: 12,
+            fontFamily: fonts.sans,
+          }}
+        >
+          {error}
+        </Text>
+      ) : null}
     </View>
   );
 }

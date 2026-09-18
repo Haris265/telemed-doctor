@@ -120,6 +120,7 @@ export default function AppointmentsScreen() {
   useEffect(() => {
     const next = parseFilter(params.filter);
     if (next) setFilter(next);
+    if (next === "today" || !params.filter) setSearch("");
   }, [params.filter]);
 
   const styles = useMemo(

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -24,13 +24,15 @@ import {
   setIsAudioActiveAsync,
 } from "expo-audio";
 import * as ImagePicker from "expo-image-picker";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ClinicBackdrop } from "@/components/ClinicBackdrop";
 import { LoadingState } from "@/components/LoadingState";
 import { Badge, Button, Card, ErrorText, TextArea } from "@/components/ui";
+import { ZoomableImage } from "@/components/ZoomableImage";
 import { api } from "@/lib/api";
 import type { Appointment, VisitAttachment } from "@/lib/types";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
@@ -44,6 +46,7 @@ import {
 } from "@/lib/format";
 import { useScreenData } from "@/lib/useScreenData";
 import { useTheme } from "@/lib/theme";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 function formatAudioMs(ms: number) {
   const total = Math.max(0, Math.floor(ms / 1000));
@@ -78,13 +81,49 @@ function VoiceNotePlayer({
   const uri = resolveMediaUrl(attachment.url);
   const player = useAudioPlayer(uri || "");
   const status = useAudioPlayerStatus(player);
+  const trackRef = useRef<View>(null);
+  const trackPageX = useRef(0);
+  const trackWidth = useRef(0);
+  const [barWidth, setBarWidth] = useState(0);
+  const [scrubbing, setScrubbing] = useState(false);
+  const [scrubRatio, setScrubRatio] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        try {
+          player.pause();
+        } catch {
+          // ignore pause errors on blur
+        }
+      };
+    }, [player]),
+  );
 
   const playing = status.playing;
   const positionMs = status.currentTime * 1000;
   const durationMs =
     status.duration * 1000 || (attachment.duration_seconds || 0) * 1000;
-  const progress =
+  const liveProgress =
     durationMs > 0 ? Math.min(1, Math.max(0, positionMs / durationMs)) : 0;
+  const progress = scrubbing ? scrubRatio : liveProgress;
+  const displayMs = scrubbing ? scrubRatio * durationMs : positionMs;
+
+  function measureTrack() {
+    trackRef.current?.measureInWindow((x, _y, w) => {
+      trackPageX.current = x;
+      trackWidth.current = w;
+      setBarWidth(w);
+    });
+  }
+
+  function seekFromPageX(pageX: number) {
+    const w = trackWidth.current;
+    if (w <= 0 || durationMs <= 0 || !uri) return;
+    const ratio = Math.min(1, Math.max(0, (pageX - trackPageX.current) / w));
+    setScrubRatio(ratio);
+    void player.seekTo((ratio * durationMs) / 1000);
+  }
 
   async function toggle() {
     if (!uri) return;
@@ -101,6 +140,8 @@ function VoiceNotePlayer({
     }
     player.play();
   }
+
+  const thumbSize = 14;
 
   return (
     <View style={{ flex: 1, gap: 8 }}>
@@ -136,26 +177,77 @@ function VoiceNotePlayer({
               marginTop: 2,
             }}
           >
-            {formatAudioMs(positionMs)} /{" "}
+            {formatAudioMs(displayMs)} /{" "}
             {durationMs ? formatAudioMs(durationMs) : "--:--"}
           </Text>
         </View>
       </View>
       <View
+        ref={trackRef}
+        onLayout={measureTrack}
+        hitSlop={{ top: 12, bottom: 12 }}
+        accessible
+        accessibilityRole="adjustable"
+        accessibilityLabel="Voice note position"
+        accessibilityValue={{
+          min: 0,
+          max: Math.round(durationMs / 1000),
+          now: Math.round(displayMs / 1000),
+        }}
+        onStartShouldSetResponder={() => durationMs > 0}
+        onMoveShouldSetResponder={() => durationMs > 0}
+        onResponderGrant={(e) => {
+          measureTrack();
+          setScrubbing(true);
+          seekFromPageX(e.nativeEvent.pageX);
+        }}
+        onResponderMove={(e) => {
+          seekFromPageX(e.nativeEvent.pageX);
+        }}
+        onResponderRelease={(e) => {
+          seekFromPageX(e.nativeEvent.pageX);
+          setScrubbing(false);
+        }}
+        onResponderTerminate={() => setScrubbing(false)}
         style={{
-          height: 4,
-          borderRadius: 2,
-          backgroundColor: colors.border,
-          overflow: "hidden",
+          height: 24,
+          justifyContent: "center",
         }}
       >
         <View
           style={{
-            width: `${progress * 100}%`,
-            height: "100%",
-            backgroundColor: colors.primary,
+            height: 4,
+            borderRadius: 2,
+            backgroundColor: colors.border,
+            overflow: "hidden",
           }}
-        />
+        >
+          <View
+            style={{
+              width: `${progress * 100}%`,
+              height: "100%",
+              backgroundColor: colors.primary,
+            }}
+          />
+        </View>
+        {barWidth > 0 && durationMs > 0 ? (
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              left: Math.max(
+                0,
+                Math.min(barWidth - thumbSize, progress * barWidth - thumbSize / 2),
+              ),
+              width: thumbSize,
+              height: thumbSize,
+              borderRadius: thumbSize / 2,
+              backgroundColor: colors.primary,
+              borderWidth: 2,
+              borderColor: "#fff",
+            }}
+          />
+        ) : null}
       </View>
     </View>
   );
@@ -365,6 +457,7 @@ export default function AppointmentDetailScreen() {
   const router = useRouter();
   const appointmentId = Number(id);
   const { colors, fonts } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder);
@@ -382,13 +475,21 @@ export default function AppointmentDetailScreen() {
   const [deleteBusyId, setDeleteBusyId] = useState<number | null>(null);
   const [nowTick, setNowTick] = useState(() => Date.now());
   const [previewUri, setPreviewUri] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         root: { flex: 1, backgroundColor: colors.bg },
         scroll: { flex: 1, zIndex: 1 },
-        content: { padding: 16, gap: 12, paddingBottom: 32 },
+        content: { padding: 16, gap: 12, paddingBottom: 120 },
+        footer: {
+          zIndex: 2,
+          borderTopWidth: 1,
+          paddingHorizontal: 16,
+          paddingTop: 12,
+          gap: 10,
+        },
         row: {
           flexDirection: "row",
           justifyContent: "space-between",
@@ -590,6 +691,8 @@ export default function AppointmentDetailScreen() {
   const isEditable = appointment?.status === "upcoming";
   const canStart = isEditable && !appointment?.visit_started_at;
   const canEnd = isEditable && visitInProgress;
+  const canComplete =
+    isEditable && visitEnded && attachments.length > 0;
   const canAttach =
     visitEnded &&
     (appointment?.status === "upcoming" || appointment?.status === "completed");
@@ -758,6 +861,9 @@ export default function AppointmentDetailScreen() {
           mimeType: asset.mimeType || "image/jpeg",
         });
         setAttachments((prev) => [...prev, att]);
+        requestAnimationFrame(() => {
+          scrollRef.current?.scrollToEnd({ animated: true });
+        });
       } catch (e) {
         setError(e instanceof Error ? e.message : "Image upload failed");
       } finally {
@@ -825,6 +931,9 @@ export default function AppointmentDetailScreen() {
         durationSeconds: durationSec,
       });
       setAttachments((prev) => [...prev, att]);
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Voice upload failed");
     } finally {
@@ -865,11 +974,12 @@ export default function AppointmentDetailScreen() {
     <View style={styles.root}>
       <ClinicBackdrop />
       <KeyboardAvoidingView
-        style={{ flex: 1, zIndex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={{ flex: 1, zIndex: 1, backgroundColor: colors.bg }}
+        behavior="padding"
         keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
       >
         <ScrollView
+          ref={scrollRef}
           style={styles.scroll}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
@@ -1194,29 +1304,19 @@ export default function AppointmentDetailScreen() {
               ) : null}
 
               {isEditable ? (
-                <>
-                  <TextArea
-                    label="Rejection reason (optional)"
-                    value={rejectionReason}
-                    onChangeText={setRejectionReason}
-                    placeholder="e.g. No-show"
-                  />
-                  <View style={styles.actions}>
-                    <Button
-                      label="Complete visit"
-                      onPress={onComplete}
-                      loading={statusBusy === "complete"}
-                      disabled={statusBusyAny || mediaBusyAny || deleteBusyAny}
-                    />
-                    <Button
-                      label="Reject"
-                      variant="danger"
-                      onPress={onReject}
-                      loading={statusBusy === "reject"}
-                      disabled={statusBusyAny || mediaBusyAny || deleteBusyAny}
-                    />
-                  </View>
-                </>
+                <TextArea
+                  label="Rejection reason (optional)"
+                  value={rejectionReason}
+                  onChangeText={setRejectionReason}
+                  placeholder="e.g. No-show"
+                  onFocus={() => {
+                    requestAnimationFrame(() => {
+                      setTimeout(() => {
+                        scrollRef.current?.scrollToEnd({ animated: true });
+                      }, 100);
+                    });
+                  }}
+                />
               ) : null}
 
               <ErrorText>{error}</ErrorText>
@@ -1225,34 +1325,55 @@ export default function AppointmentDetailScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
+      {isEditable ? (
+        <View
+          style={[
+            styles.footer,
+            {
+              backgroundColor: colors.surface,
+              borderTopColor: colors.border,
+              paddingBottom: Math.max(insets.bottom, 12),
+            },
+          ]}
+        >
+          {canComplete ? (
+            <Button
+              label="Complete visit"
+              onPress={onComplete}
+              loading={statusBusy === "complete"}
+              disabled={statusBusyAny || mediaBusyAny || deleteBusyAny}
+            />
+          ) : null}
+          <Button
+            label="Reject"
+            variant="danger"
+            onPress={onReject}
+            loading={statusBusy === "reject"}
+            disabled={statusBusyAny || mediaBusyAny || deleteBusyAny}
+          />
+        </View>
+      ) : null}
+
       <Modal
         visible={Boolean(previewUri)}
         transparent
         animationType="fade"
         onRequestClose={() => setPreviewUri(null)}
       >
-        <View style={styles.previewRoot}>
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={() => setPreviewUri(null)}
-          />
-          {previewUri ? (
-            <Image
-              source={{ uri: previewUri }}
-              style={styles.previewImage}
-              resizeMode="contain"
-            />
-          ) : null}
-          <Pressable
-            onPress={() => setPreviewUri(null)}
-            style={styles.previewClose}
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel="Close preview"
-          >
-            <Ionicons name="close" size={22} color="#fff" />
-          </Pressable>
-        </View>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <View style={styles.previewRoot}>
+            {previewUri ? <ZoomableImage uri={previewUri} /> : null}
+            <Pressable
+              onPress={() => setPreviewUri(null)}
+              style={styles.previewClose}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Close preview"
+            >
+              <Ionicons name="close" size={22} color="#fff" />
+            </Pressable>
+          </View>
+        </GestureHandlerRootView>
       </Modal>
     </View>
   );

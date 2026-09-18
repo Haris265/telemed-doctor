@@ -108,8 +108,47 @@ function parseJsonSafe(text: string): unknown {
   }
 }
 
+function extractErrorDetail(data: unknown): string | null {
+  if (data == null) return null;
+  if (typeof data !== "object") {
+    return typeof data === "string" ? data : null;
+  }
+  const err = data as Record<string, unknown>;
+  const statusField = err.status;
+  const statusMsg = Array.isArray(statusField) ? statusField[0] : undefined;
+  let detail: unknown = err.detail || statusMsg || err.non_field_errors || null;
+  if (Array.isArray(detail)) detail = detail[0];
+  if (!detail) {
+    const firstKey = Object.keys(err)[0];
+    const firstVal = firstKey ? err[firstKey] : null;
+    if (Array.isArray(firstVal) && firstVal[0]) detail = String(firstVal[0]);
+    else if (typeof firstVal === "string") detail = firstVal;
+  }
+  return typeof detail === "string" && detail.trim() ? detail.trim() : null;
+}
+
+function isCredentialFailureMessage(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("credentials") ||
+    lower.includes("password") ||
+    lower.includes("no active account") ||
+    lower.includes("unable to log in") ||
+    lower.includes("authentication failed") ||
+    lower.includes("invalid email") ||
+    lower.includes("incorrect")
+  );
+}
+
 function throwForFailedStatus(status: number, data: unknown, text: string): never {
   if (status === 401) {
+    const detail = extractErrorDetail(data);
+    if (detail && isCredentialFailureMessage(detail)) {
+      throw new Error("Password was incorrect.");
+    }
+    if (detail) {
+      throw new Error(detail);
+    }
     throw new Error("Unauthorized");
   }
   if (status === 404) {
@@ -123,21 +162,8 @@ function throwForFailedStatus(status: number, data: unknown, text: string): neve
   if (data == null && text) {
     throw new Error(`Invalid API response (${status})`);
   }
-  const err = data as Record<string, unknown> | null;
-  const statusField = err?.status;
-  const statusMsg = Array.isArray(statusField) ? statusField[0] : undefined;
-  let detail: unknown =
-    err?.detail ||
-    statusMsg ||
-    (typeof data === "object" ? null : "Request failed");
-  if (!detail && err && typeof err === "object") {
-    const firstKey = Object.keys(err)[0];
-    const firstVal = firstKey ? err[firstKey] : null;
-    if (Array.isArray(firstVal) && firstVal[0]) detail = String(firstVal[0]);
-    else if (typeof firstVal === "string") detail = firstVal;
-    else detail = JSON.stringify(data);
-  }
-  throw new Error(typeof detail === "string" ? detail : "Request failed");
+  const detail = extractErrorDetail(data);
+  throw new Error(detail || "Request failed");
 }
 
 async function tryRefreshAccessToken(): Promise<boolean> {

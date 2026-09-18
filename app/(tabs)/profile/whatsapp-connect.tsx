@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ComponentRef } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -7,19 +7,30 @@ import {
   ScrollView,
   Text,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from "react-native";
 import { router } from "expo-router";
 
 import { WhatsAppConnectGuide } from "@/components/WhatsAppConnectGuide";
-import { WhatsAppManualConnectPanel } from "@/components/WhatsAppManualConnectPanel";
+import {
+  WhatsAppManualConnectPanel,
+  type ManualConnectFieldKey,
+} from "@/components/WhatsAppManualConnectPanel";
 import { Button, Screen, Subtitle, Title, useThemedStyles } from "@/components/ui";
 import { api } from "@/lib/api";
 import { launchWhatsAppConnect } from "@/lib/whatsappConnect";
 import { useTheme } from "@/lib/theme";
 
+type FieldAnchor = ComponentRef<typeof View>;
+
 export default function WhatsAppConnectScreen() {
   const { colors } = useTheme();
   const scrollRef = useRef<ScrollView>(null);
+  const scrollYRef = useRef(0);
+  const fieldAnchors = useRef<Partial<Record<ManualConnectFieldKey, FieldAnchor | null>>>(
+    {},
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [manualAllowed, setManualAllowed] = useState(false);
@@ -30,6 +41,7 @@ export default function WhatsAppConnectScreen() {
 
   const styles = useThemedStyles((c, f) => ({
     flex: { flex: 1 },
+    kav: { flex: 1, backgroundColor: c.bg },
     error: {
       color: c.danger,
       fontFamily: f.sans,
@@ -59,14 +71,53 @@ export default function WhatsAppConnectScreen() {
       .catch(() => setManualAllowed(false));
   }, []);
 
-  const scrollManualFieldsIntoView = useCallback(() => {
-    requestAnimationFrame(() => {
-      scrollRef.current?.scrollToEnd({ animated: true });
-    });
-    setTimeout(() => {
-      scrollRef.current?.scrollToEnd({ animated: true });
-    }, 100);
+  const registerFieldAnchor = useCallback(
+    (key: ManualConnectFieldKey, node: FieldAnchor | null) => {
+      fieldAnchors.current[key] = node;
+    },
+    [],
+  );
+
+  const scrollFieldIntoView = useCallback((key: ManualConnectFieldKey) => {
+    const run = () => {
+      const field = fieldAnchors.current[key];
+      const scroll = scrollRef.current;
+      if (!field || !scroll) return;
+
+      field.measureInWindow((_fx, fy, _fw, fh) => {
+        scroll.measureInWindow((_sx, sy, _sw, sh) => {
+          const pad = 28;
+          const fieldTop = fy;
+          const fieldBottom = fy + fh;
+          const visibleTop = sy + pad;
+          const visibleBottom = sy + sh - pad;
+          let delta = 0;
+          if (fieldBottom > visibleBottom) {
+            delta = fieldBottom - visibleBottom;
+          } else if (fieldTop < visibleTop) {
+            delta = fieldTop - visibleTop;
+          }
+          if (delta !== 0) {
+            scroll.scrollTo({
+              y: Math.max(0, scrollYRef.current + delta),
+              animated: true,
+            });
+          }
+        });
+      });
+    };
+
+    requestAnimationFrame(run);
+    setTimeout(run, 120);
+    setTimeout(run, 350);
   }, []);
+
+  const onScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      scrollYRef.current = e.nativeEvent.contentOffset.y;
+    },
+    [],
+  );
 
   const onConnect = useCallback(async () => {
     setBusy(true);
@@ -122,16 +173,18 @@ export default function WhatsAppConnectScreen() {
   return (
     <Screen>
       <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.kav}
+        behavior="padding"
         keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
       >
         <ScrollView
           ref={scrollRef}
           style={styles.flex}
-          contentContainerStyle={{ paddingBottom: 32 }}
+          contentContainerStyle={{ paddingBottom: 200 }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+          onScroll={onScroll}
+          scrollEventThrottle={16}
         >
           <Title>Connect WhatsApp</Title>
           <Subtitle>
@@ -153,18 +206,19 @@ export default function WhatsAppConnectScreen() {
             />
           ) : null}
 
-          <Button
-            label={busy ? "Connecting…" : "Continue with Meta"}
-            onPress={onConnect}
-            disabled={busy}
-          />
-          <Button
-            label="Not now"
-            variant="secondary"
-            onPress={() => router.back()}
-            disabled={busy}
-          />
-
+          <View style={{ gap: 12 }}>
+            <Button
+              label={busy ? "Connecting…" : "Continue with Meta"}
+              onPress={onConnect}
+              disabled={busy}
+            />
+            <Button
+              label="Not now"
+              variant="secondary"
+              onPress={() => router.back()}
+              disabled={busy}
+            />
+          </View>
           <Text style={styles.tip}>
             Make sure your Meta Business account already has WhatsApp access, then
             approve the permissions Meta requests.
@@ -182,7 +236,8 @@ export default function WhatsAppConnectScreen() {
               onChangeWabaId={setWabaId}
               onChangeDisplayPhone={setDisplayPhone}
               onConnect={onManualConnect}
-              onFieldFocus={scrollManualFieldsIntoView}
+              onFieldFocus={scrollFieldIntoView}
+              registerFieldAnchor={registerFieldAnchor}
             />
           ) : null}
         </ScrollView>

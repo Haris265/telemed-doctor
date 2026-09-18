@@ -1,7 +1,7 @@
 import { Stack } from "expo-router";
 
-import { AppHeaderTitle } from "@/components/AppHeaderTitle";
 import { HeaderBackButton } from "@/components/HeaderBackButton";
+import { screenHeaderOptions } from "@/lib/screenHeader";
 import { useTheme } from "@/lib/theme";
 
 export default function AppointmentsLayout() {
@@ -10,15 +10,7 @@ export default function AppointmentsLayout() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: colors.surface },
-        headerTintColor: colors.text,
-        headerTitle: () => <AppHeaderTitle />,
-        headerTitleAlign: "left",
-        headerTitleStyle: {
-          fontFamily: fonts.sansBold,
-          color: colors.text,
-        },
-        headerShadowVisible: false,
+        ...screenHeaderOptions(colors, fonts),
         contentStyle: { backgroundColor: colors.bg },
       }}
     >

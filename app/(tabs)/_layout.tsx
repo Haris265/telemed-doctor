@@ -1,8 +1,8 @@
-import { Redirect, Tabs } from "expo-router";
+import { Redirect, Tabs, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { AppHeaderTitle } from "@/components/AppHeaderTitle";
 import { useAuth } from "@/lib/auth";
+import { screenHeaderOptions } from "@/lib/screenHeader";
 import { useTheme } from "@/lib/theme";
 
 export default function TabLayout() {
@@ -15,15 +15,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        headerStyle: { backgroundColor: colors.surface },
-        headerTintColor: colors.text,
-        headerTitle: () => <AppHeaderTitle />,
-        headerTitleAlign: "left",
-        headerTitleStyle: {
-          fontFamily: fonts.sansBold,
-          color: colors.text,
-        },
-        headerShadowVisible: false,
+        ...screenHeaderOptions(colors, fonts),
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
@@ -40,7 +32,6 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Home",
-          headerShown: true,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
               name={focused ? "home" : "home-outline"}
@@ -48,6 +39,12 @@ export default function TabLayout() {
               size={size}
             />
           ),
+        }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.navigate("/(tabs)");
+          },
         }}
       />
       <Tabs.Screen
@@ -62,6 +59,15 @@ export default function TabLayout() {
             />
           ),
         }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.navigate({
+              pathname: "/(tabs)/appointments",
+              params: { filter: "today" },
+            });
+          },
+        }}
       />
       <Tabs.Screen
         name="patients"
@@ -74,6 +80,12 @@ export default function TabLayout() {
               size={size}
             />
           ),
+        }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.navigate("/(tabs)/patients");
+          },
         }}
       />
       <Tabs.Screen
@@ -88,6 +100,12 @@ export default function TabLayout() {
             />
           ),
         }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.navigate("/(tabs)/clinics");
+          },
+        }}
       />
       <Tabs.Screen
         name="profile"
@@ -100,6 +118,12 @@ export default function TabLayout() {
               size={size}
             />
           ),
+        }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.navigate("/(tabs)/profile");
+          },
         }}
       />
     </Tabs>
