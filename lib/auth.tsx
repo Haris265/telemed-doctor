@@ -44,6 +44,8 @@ function doctorSnapshot(d: DoctorProfile) {
     d.first_name,
     d.last_name,
     d.session_time,
+    d.consultation_fee ?? "",
+    d.bank_accounts?.map((b) => b.id).join(",") ?? "",
     d.is_active,
     d.specialities?.map((s) => s.id).join(",") ?? "",
   ].join("|");

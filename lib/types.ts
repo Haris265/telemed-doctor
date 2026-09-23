@@ -74,6 +74,27 @@ export type DateAvailabilityReplaceResponse = {
   slots: AvailabilitySlot[];
 };
 
+export type DoctorBankAccount = {
+  id: number;
+  bank_name: string;
+  account_title: string;
+  account_number: string;
+  iban: string;
+  is_primary: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DoctorBankAccountPayload = {
+  bank_name: string;
+  account_title: string;
+  account_number: string;
+  iban?: string;
+  is_primary?: boolean;
+  is_active?: boolean;
+};
+
 export type DoctorProfile = {
   id: number;
   uuid: string;
@@ -83,6 +104,8 @@ export type DoctorProfile = {
   email: string;
   specialities: Speciality[];
   session_time: number;
+  consultation_fee?: string | number;
+  bank_accounts?: DoctorBankAccount[];
   is_active: boolean;
   created_at: string;
 };
@@ -92,6 +115,7 @@ export type DoctorProfileUpdatePayload = {
   last_name?: string;
   email?: string;
   session_time?: number;
+  consultation_fee?: string | number;
 };
 
 export type ChangePasswordPayload = {
@@ -152,6 +176,18 @@ export type VisitAttachment = {
   created_at: string;
 };
 
+export type AppointmentPaymentMethod = "bank_transfer" | "cash_at_clinic" | "";
+export type AppointmentPaymentStatus =
+  | "pending"
+  | "paid"
+  | "failed"
+  | "not_required";
+export type AppointmentPaymentOcrStatus =
+  | "pending"
+  | "passed"
+  | "failed"
+  | "skipped";
+
 export type Appointment = {
   id: number;
   patient: number;
@@ -169,6 +205,14 @@ export type Appointment = {
   status: AppointmentStatus;
   notes: string;
   rejection_reason?: string;
+  payment_method?: AppointmentPaymentMethod | string;
+  payment_status?: AppointmentPaymentStatus | string;
+  payment_amount_expected?: string | number | null;
+  payment_amount_received?: string | number | null;
+  payment_reference?: string;
+  payment_slip?: string | null;
+  payment_ocr_status?: AppointmentPaymentOcrStatus | string;
+  payment_verified_at?: string | null;
   visit_started_at?: string | null;
   visit_ended_at?: string | null;
   visit_duration_seconds?: number | null;

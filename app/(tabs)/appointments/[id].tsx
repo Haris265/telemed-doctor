@@ -1026,6 +1026,77 @@ export default function AppointmentDetailScreen() {
                 </Card>
               ) : null}
 
+              {appointment?.payment_method ? (
+                <Card style={{ gap: 8 }}>
+                  <Text style={[styles.section, { marginTop: 0 }]}>Payment</Text>
+                  <View style={styles.row}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.timingLabel}>Method</Text>
+                      <Text style={styles.timingValue}>
+                        {appointment.payment_method === "bank_transfer"
+                          ? "Bank transfer"
+                          : appointment.payment_method === "cash_at_clinic"
+                            ? "Cash at clinic"
+                            : appointment.payment_method}
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.timingLabel}>Status</Text>
+                      <Text style={styles.timingValue}>
+                        {appointment.payment_status === "paid"
+                          ? "Paid"
+                          : appointment.payment_status === "pending"
+                            ? "Pending"
+                            : appointment.payment_status === "failed"
+                              ? "Failed"
+                              : appointment.payment_status || "—"}
+                      </Text>
+                    </View>
+                  </View>
+                  {appointment.payment_amount_expected != null &&
+                  appointment.payment_amount_expected !== "" ? (
+                    <View>
+                      <Text style={styles.timingLabel}>Expected</Text>
+                      <Text style={styles.timingValue}>
+                        Rs {appointment.payment_amount_expected}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {appointment.payment_amount_received != null &&
+                  appointment.payment_amount_received !== "" ? (
+                    <View>
+                      <Text style={styles.timingLabel}>Received</Text>
+                      <Text style={styles.timingValue}>
+                        Rs {appointment.payment_amount_received}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {appointment.payment_reference ? (
+                    <View>
+                      <Text style={styles.timingLabel}>Reference</Text>
+                      <Text style={styles.timingValue}>
+                        {appointment.payment_reference}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {appointment.payment_ocr_status &&
+                  appointment.payment_ocr_status !== "skipped" ? (
+                    <View>
+                      <Text style={styles.timingLabel}>Slip OCR</Text>
+                      <Text style={styles.timingValue}>
+                        {appointment.payment_ocr_status === "passed"
+                          ? "Verified"
+                          : appointment.payment_ocr_status === "failed"
+                            ? "Failed"
+                            : appointment.payment_ocr_status === "pending"
+                              ? "Pending"
+                              : appointment.payment_ocr_status}
+                      </Text>
+                    </View>
+                  ) : null}
+                </Card>
+              ) : null}
+
               {appointment ? (
                 <Card style={{ gap: 12 }}>
                   <Text style={[styles.section, { marginTop: 0 }]}>

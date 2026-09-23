@@ -7,6 +7,8 @@ import type {
   DashboardStats,
   DateAvailabilityReplacePayload,
   DateAvailabilityReplaceResponse,
+  DoctorBankAccount,
+  DoctorBankAccountPayload,
   DoctorBookPayload,
   DoctorClinic,
   DoctorPatientDetail,
@@ -323,6 +325,26 @@ export const api = {
     request<DoctorProfile>("/api/doctor/me/", {
       method: "PATCH",
       body: JSON.stringify(payload),
+    }),
+
+  bankAccounts: () =>
+    request<DoctorBankAccount[]>("/api/doctor/bank-accounts/"),
+
+  createBankAccount: (payload: DoctorBankAccountPayload) =>
+    request<DoctorBankAccount>("/api/doctor/bank-accounts/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  updateBankAccount: (id: number, payload: Partial<DoctorBankAccountPayload>) =>
+    request<DoctorBankAccount>(`/api/doctor/bank-accounts/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+
+  deleteBankAccount: (id: number) =>
+    request<void>(`/api/doctor/bank-accounts/${id}/`, {
+      method: "DELETE",
     }),
 
   changePassword: (payload: ChangePasswordPayload) =>

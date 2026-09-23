@@ -213,6 +213,29 @@ export default function ProfileScreen() {
             </View>
 
             <View style={styles.field}>
+              <Text style={styles.label}>Consultation fee</Text>
+              <Text style={styles.value}>
+                {doctor?.consultation_fee != null &&
+                doctor.consultation_fee !== ""
+                  ? `Rs ${doctor.consultation_fee}`
+                  : "Not set"}
+              </Text>
+            </View>
+
+            <View style={styles.field}>
+              <Text style={styles.label}>Bank accounts</Text>
+              <Text style={styles.value}>
+                {doctor?.bank_accounts?.length
+                  ? `${doctor.bank_accounts.length} saved${
+                      doctor.bank_accounts.some((b) => b.is_primary)
+                        ? " · primary set"
+                        : ""
+                    }`
+                  : "None — required for WhatsApp bank transfer"}
+              </Text>
+            </View>
+
+            <View style={styles.field}>
               <Text style={styles.label}>Status</Text>
               <Text style={styles.value}>
                 {doctor?.is_active ? "Active" : "Inactive"}
@@ -223,6 +246,13 @@ export default function ProfileScreen() {
             <Button
               label="Edit profile"
               onPress={() => router.push("/(tabs)/profile/edit" as Href)}
+            />
+            <Button
+              label="Manage bank accounts"
+              variant="secondary"
+              onPress={() =>
+                router.push("/(tabs)/profile/bank-accounts" as Href)
+              }
             />
             <Button
               label="Change password"

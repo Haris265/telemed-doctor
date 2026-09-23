@@ -25,6 +25,15 @@ export default function ProfileLayout() {
         }}
       />
       <Stack.Screen
+        name="bank-accounts"
+        options={{
+          title: "Bank accounts",
+          headerLeft: () => (
+            <HeaderBackButton fallbackHref="/(tabs)/profile" />
+          ),
+        }}
+      />
+      <Stack.Screen
         name="change-password"
         options={{
           title: "Change password",

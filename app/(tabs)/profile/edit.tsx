@@ -24,6 +24,7 @@ type FieldErrors = {
   lastName?: string;
   email?: string;
   sessionTime?: string;
+  consultationFee?: string;
 };
 
 function validateProfile(fields: {
@@ -31,12 +32,15 @@ function validateProfile(fields: {
   lastName: string;
   email: string;
   sessionTime: string;
+  consultationFee: string;
 }): FieldErrors {
   const errors: FieldErrors = {};
   const first = fields.firstName.trim();
   const last = fields.lastName.trim();
   const nextEmail = fields.email.trim().toLowerCase();
   const session = Number(fields.sessionTime);
+  const feeRaw = fields.consultationFee.trim();
+  const fee = Number(feeRaw);
 
   if (!first) errors.firstName = "Enter first name.";
   if (!last) errors.lastName = "Enter last name.";
@@ -52,6 +56,11 @@ function validateProfile(fields: {
     errors.sessionTime =
       "Session time must be a whole number of at least 1 minute.";
   }
+  if (!feeRaw) {
+    errors.consultationFee = "Enter consultation fee (PKR). Use 0 if free.";
+  } else if (!Number.isFinite(fee) || fee < 0) {
+    errors.consultationFee = "Fee must be zero or a positive number.";
+  }
 
   return errors;
 }
@@ -62,6 +71,7 @@ export default function EditProfileScreen() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [sessionTime, setSessionTime] = useState("");
+  const [consultationFee, setConsultationFee] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -72,6 +82,11 @@ export default function EditProfileScreen() {
     setLastName(doctor.last_name || "");
     setEmail(doctor.email || "");
     setSessionTime(String(doctor.session_time ?? ""));
+    setConsultationFee(
+      doctor.consultation_fee != null && doctor.consultation_fee !== ""
+        ? String(doctor.consultation_fee)
+        : "0",
+    );
   }, [doctor]);
 
   function clearFieldError(key: keyof FieldErrors) {
@@ -89,6 +104,7 @@ export default function EditProfileScreen() {
       lastName,
       email,
       sessionTime,
+      consultationFee,
     });
     setFieldErrors(errors);
     setError(null);
@@ -98,6 +114,7 @@ export default function EditProfileScreen() {
     const last = lastName.trim();
     const nextEmail = email.trim().toLowerCase();
     const session = Number(sessionTime);
+    const fee = Number(consultationFee.trim());
 
     setSaving(true);
     try {
@@ -106,6 +123,7 @@ export default function EditProfileScreen() {
         last_name: last,
         email: nextEmail,
         session_time: session,
+        consultation_fee: fee,
       });
       await refreshMe();
       router.back();
@@ -132,8 +150,8 @@ export default function EditProfileScreen() {
         >
           <Title>Edit profile</Title>
           <Subtitle>
-            Update your name, email, and default consultation length.
-            Specialities stay managed by admin.
+            Update your name, email, consultation length, and fee for WhatsApp
+            bank transfers. Specialities stay managed by admin.
           </Subtitle>
 
           <View style={{ height: 20 }} />
@@ -187,6 +205,17 @@ export default function EditProfileScreen() {
               placeholder="15"
               keyboardType="number-pad"
               error={fieldErrors.sessionTime}
+            />
+            <Input
+              label="Consultation fee (PKR)"
+              value={consultationFee}
+              onChangeText={(t) => {
+                setConsultationFee(t);
+                clearFieldError("consultationFee");
+              }}
+              placeholder="1500"
+              keyboardType="decimal-pad"
+              error={fieldErrors.consultationFee}
             />
             <ErrorText>{error}</ErrorText>
             <Button
