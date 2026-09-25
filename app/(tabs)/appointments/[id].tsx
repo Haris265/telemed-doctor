@@ -31,7 +31,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ClinicBackdrop } from "@/components/ClinicBackdrop";
 import { LoadingState } from "@/components/LoadingState";
-import { Badge, Button, Card, ErrorText, TextArea } from "@/components/ui";
+import { Badge, Button, Card, ErrorText, IconButton, TextArea } from "@/components/ui";
 import { ZoomableImage } from "@/components/ZoomableImage";
 import { api } from "@/lib/api";
 import type { Appointment, VisitAttachment } from "@/lib/types";
@@ -531,9 +531,19 @@ export default function AppointmentDetailScreen() {
         photoRow: {
           flexDirection: "row",
           gap: 10,
+          alignItems: "center",
         },
         photoBtn: {
-          flex: 1,
+          flex: 0,
+        },
+        photoLabel: {
+          color: colors.muted,
+          fontSize: 12,
+          fontFamily: fonts.sansSemi,
+        },
+        photoAction: {
+          alignItems: "center",
+          gap: 6,
         },
         timingLabel: {
           color: colors.muted,
@@ -639,6 +649,7 @@ export default function AppointmentDetailScreen() {
         },
         voiceActions: {
           flexDirection: "row",
+          alignItems: "center",
           gap: 10,
           width: "100%",
         },
@@ -1174,23 +1185,25 @@ export default function AppointmentDetailScreen() {
               {canAttach ? (
                 <View style={styles.actions}>
                   <View style={styles.photoRow}>
-                    <View style={styles.photoBtn}>
-                      <Button
-                        label="Take photo"
-                        variant="secondary"
+                    <View style={styles.photoAction}>
+                      <IconButton
+                        name="camera-outline"
+                        accessibilityLabel="Take photo"
                         loading={mediaBusy === "camera"}
                         onPress={() => pickImage(true)}
                         disabled={mediaBusyAny || isRecording || deleteBusyAny}
                       />
+                      <Text style={styles.photoLabel}>Camera</Text>
                     </View>
-                    <View style={styles.photoBtn}>
-                      <Button
-                        label="Choose image"
-                        variant="secondary"
+                    <View style={styles.photoAction}>
+                      <IconButton
+                        name="image-outline"
+                        accessibilityLabel="Choose image"
                         loading={mediaBusy === "gallery"}
                         onPress={() => pickImage(false)}
                         disabled={mediaBusyAny || isRecording || deleteBusyAny}
                       />
+                      <Text style={styles.photoLabel}>Gallery</Text>
                     </View>
                   </View>
 
@@ -1254,13 +1267,11 @@ export default function AppointmentDetailScreen() {
 
                       {isRecording && !voiceUploading ? (
                         <View style={styles.voiceActions}>
-                          <View style={{ flex: 1 }}>
-                            <Button
-                              label="Cancel"
-                              variant="secondary"
-                              onPress={cancelRecording}
-                            />
-                          </View>
+                          <IconButton
+                            name="close"
+                            accessibilityLabel="Cancel recording"
+                            onPress={cancelRecording}
+                          />
                           <View style={{ flex: 1 }}>
                             <Button
                               label="Stop & upload"

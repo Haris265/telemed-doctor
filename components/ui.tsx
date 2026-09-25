@@ -104,12 +104,14 @@ export function Button({
   variant = "primary",
   disabled,
   loading,
+  icon,
 }: {
   label: string;
   onPress: () => void;
   variant?: "primary" | "secondary" | "danger";
   disabled?: boolean;
   loading?: boolean;
+  icon?: keyof typeof Ionicons.glyphMap;
 }) {
   const { colors, fonts } = useTheme();
   const bg =
@@ -127,8 +129,11 @@ export function Button({
         {
           borderRadius: 14,
           paddingVertical: 14,
+          paddingHorizontal: 16,
+          flexDirection: "row",
           alignItems: "center",
           justifyContent: "center",
+          gap: 8,
           backgroundColor: bg,
           opacity: pressed || disabled || loading ? 0.7 : 1,
           borderWidth: variant === "secondary" ? 1 : 0,
@@ -139,15 +144,85 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={textColor} />
       ) : (
-        <Text
-          style={{
-            color: textColor,
-            fontFamily: fonts.sansBold,
-            fontSize: 15,
-          }}
-        >
-          {label}
-        </Text>
+        <>
+          {icon ? <Ionicons name={icon} size={18} color={textColor} /> : null}
+          <Text
+            style={{
+              color: textColor,
+              fontFamily: fonts.sansBold,
+              fontSize: 15,
+            }}
+          >
+            {label}
+          </Text>
+        </>
+      )}
+    </Pressable>
+  );
+}
+
+export function IconButton({
+  name,
+  onPress,
+  accessibilityLabel,
+  variant = "default",
+  disabled,
+  loading,
+  size = 20,
+}: {
+  name: keyof typeof Ionicons.glyphMap;
+  onPress: () => void;
+  accessibilityLabel: string;
+  variant?: "default" | "danger" | "primary";
+  disabled?: boolean;
+  loading?: boolean;
+  size?: number;
+}) {
+  const { colors } = useTheme();
+  const iconColor =
+    variant === "danger"
+      ? colors.danger
+      : variant === "primary"
+        ? "#ffffff"
+        : colors.text;
+  const bg =
+    variant === "primary"
+      ? colors.primary
+      : variant === "danger"
+        ? "rgba(185,28,28,0.08)"
+        : colors.surfaceAlt;
+  const borderColor =
+    variant === "danger"
+      ? "rgba(185,28,28,0.35)"
+      : variant === "primary"
+        ? colors.primary
+        : colors.border;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled || loading}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      hitSlop={8}
+      style={({ pressed }) => [
+        {
+          width: 40,
+          height: 40,
+          borderRadius: 12,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: bg,
+          borderWidth: 1,
+          borderColor,
+          opacity: pressed || disabled || loading ? 0.7 : 1,
+        },
+      ]}
+    >
+      {loading ? (
+        <ActivityIndicator color={iconColor} size="small" />
+      ) : (
+        <Ionicons name={name} size={size} color={iconColor} />
       )}
     </Pressable>
   );

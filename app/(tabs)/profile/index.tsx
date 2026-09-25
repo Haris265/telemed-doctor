@@ -1,15 +1,26 @@
 import { useCallback, useMemo, useState } from "react";
 import {
   Alert,
+  Pressable,
   RefreshControl,
   ScrollView,
+  StyleSheet,
   Text,
   View,
 } from "react-native";
 import { router, type Href } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 import { LoadingState } from "@/components/LoadingState";
-import { Button, Card, Screen, Subtitle, Title, useThemedStyles } from "@/components/ui";
+import {
+  Button,
+  Card,
+  IconButton,
+  Screen,
+  Subtitle,
+  Title,
+  useThemedStyles,
+} from "@/components/ui";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useScreenData } from "@/lib/useScreenData";
@@ -89,6 +100,37 @@ export default function ProfileScreen() {
       fontSize: 13,
       marginBottom: 12,
       lineHeight: 18,
+    },
+    navList: {
+      marginTop: 8,
+      gap: 2,
+    },
+    navRow: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 12,
+      paddingVertical: 12,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: c.border,
+    },
+    navIconWrap: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      backgroundColor: c.surfaceAlt,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+    },
+    navLabel: {
+      flex: 1,
+      color: c.text,
+      fontSize: 15,
+      fontFamily: f.sansSemi,
+    },
+    waActions: {
+      flexDirection: "row" as const,
+      gap: 8,
+      marginTop: 4,
     },
   }));
 
@@ -242,25 +284,42 @@ export default function ProfileScreen() {
               </Text>
             </View>
 
-            <View style={{ height: 8 }} />
-            <Button
-              label="Edit profile"
-              onPress={() => router.push("/(tabs)/profile/edit" as Href)}
-            />
-            <Button
-              label="Manage bank accounts"
-              variant="secondary"
-              onPress={() =>
-                router.push("/(tabs)/profile/bank-accounts" as Href)
-              }
-            />
-            <Button
-              label="Change password"
-              variant="secondary"
-              onPress={() =>
-                router.push("/(tabs)/profile/change-password" as Href)
-              }
-            />
+            <View style={styles.navList}>
+              <Pressable
+                style={styles.navRow}
+                onPress={() => router.push("/(tabs)/profile/edit" as Href)}
+              >
+                <View style={styles.navIconWrap}>
+                  <Ionicons name="person-outline" size={18} color={colors.text} />
+                </View>
+                <Text style={styles.navLabel}>Edit profile</Text>
+                <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+              </Pressable>
+              <Pressable
+                style={styles.navRow}
+                onPress={() =>
+                  router.push("/(tabs)/profile/bank-accounts" as Href)
+                }
+              >
+                <View style={styles.navIconWrap}>
+                  <Ionicons name="card-outline" size={18} color={colors.text} />
+                </View>
+                <Text style={styles.navLabel}>Manage bank accounts</Text>
+                <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+              </Pressable>
+              <Pressable
+                style={styles.navRow}
+                onPress={() =>
+                  router.push("/(tabs)/profile/change-password" as Href)
+                }
+              >
+                <View style={styles.navIconWrap}>
+                  <Ionicons name="key-outline" size={18} color={colors.text} />
+                </View>
+                <Text style={styles.navLabel}>Change password</Text>
+                <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+              </Pressable>
+            </View>
           </Card>
         )}
 
@@ -294,22 +353,24 @@ export default function ProfileScreen() {
               ) : null}
 
               {waStatus?.connected ? (
-                <>
-                  <Button
-                    label={waBusy ? "Working…" : "Reconnect"}
-                    variant="secondary"
+                <View style={styles.waActions}>
+                  <IconButton
+                    name="refresh-outline"
+                    accessibilityLabel="Reconnect WhatsApp"
                     onPress={() =>
                       router.push("/(tabs)/profile/whatsapp-connect" as Href)
                     }
                     disabled={waBusy}
+                    loading={waBusy}
                   />
-                  <Button
-                    label="Disconnect"
+                  <IconButton
+                    name="unlink-outline"
+                    accessibilityLabel="Disconnect WhatsApp"
                     variant="danger"
                     onPress={onDisconnectWhatsApp}
                     disabled={waBusy}
                   />
-                </>
+                </View>
               ) : (
                 <Button
                   label="Connect WhatsApp"
@@ -325,7 +386,12 @@ export default function ProfileScreen() {
 
         <View style={{ height: 20 }} />
 
-        <Button label="Sign out" variant="danger" onPress={onSignOut} />
+        <Button
+          label="Sign out"
+          variant="danger"
+          icon="log-out-outline"
+          onPress={onSignOut}
+        />
       </ScrollView>
     </Screen>
   );

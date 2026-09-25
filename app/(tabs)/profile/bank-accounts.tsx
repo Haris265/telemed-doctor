@@ -3,18 +3,19 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   RefreshControl,
   ScrollView,
   Text,
   View,
 } from "react-native";
-import { router } from "expo-router";
 
 import { LoadingState } from "@/components/LoadingState";
 import {
   Button,
   Card,
   ErrorText,
+  IconButton,
   Input,
   Screen,
   Subtitle,
@@ -25,7 +26,6 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 import type { DoctorBankAccount } from "@/lib/types";
-
 type FormState = {
   bank_name: string;
   account_title: string;
@@ -34,13 +34,24 @@ type FormState = {
   is_primary: boolean;
 };
 
-const EMPTY_FORM: FormState = {
-  bank_name: "",
-  account_title: "",
-  account_number: "",
-  iban: "",
-  is_primary: false,
-};
+function makeEmptyForm(isPrimary: boolean): FormState {
+  return {
+    bank_name: "",
+    account_title: "",
+    account_number: "",
+    iban: "",
+    is_primary: isPrimary,
+  };
+}
+
+function isFormIdle(form: FormState) {
+  return (
+    !form.bank_name &&
+    !form.account_title &&
+    !form.account_number &&
+    !form.iban
+  );
+}
 
 export default function BankAccountsScreen() {
   const { refreshMe } = useAuth();
@@ -49,7 +60,7 @@ export default function BankAccountsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [form, setForm] = useState<FormState>(() => makeEmptyForm(true));
   const [editingId, setEditingId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -98,6 +109,54 @@ export default function BankAccountsScreen() {
       fontSize: 15,
       flex: 1,
     },
+    cardHeader: {
+      flexDirection: "row" as const,
+      alignItems: "flex-start" as const,
+      justifyContent: "space-between" as const,
+      gap: 8,
+      minHeight: 40,
+    },
+    cardHeaderLeft: {
+      flex: 1,
+      gap: 4,
+    },
+    cardActions: {
+      flexDirection: "row" as const,
+      gap: 8,
+    },
+    formTitleRow: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      justifyContent: "space-between" as const,
+      gap: 8,
+    },
+    yesNoGroup: {
+      flexDirection: "row" as const,
+      gap: 8,
+    },
+    yesNoBtn: {
+      minWidth: 56,
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.surfaceAlt,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+    },
+    yesNoBtnActive: {
+      borderColor: c.primary,
+      backgroundColor: c.primary,
+    },
+    yesNoText: {
+      color: c.text,
+      fontFamily: f.sansBold,
+      fontSize: 14,
+    },
+    yesNoTextActive: {
+      color: "#ffffff",
+    },
   }));
 
   const load = useCallback(async (isRefresh = false) => {
@@ -107,6 +166,11 @@ export default function BankAccountsScreen() {
     try {
       const list = await api.bankAccounts();
       setAccounts(list);
+      if (!isRefresh) {
+        setForm((prev) =>
+          isFormIdle(prev) ? makeEmptyForm(list.length === 0) : prev,
+        );
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load bank accounts.");
     } finally {
@@ -131,9 +195,9 @@ export default function BankAccountsScreen() {
     setFormError(null);
   }
 
-  function resetForm() {
+  function resetForm(remainingCount = accounts.length) {
     setEditingId(null);
-    setForm(EMPTY_FORM);
+    setForm(makeEmptyForm(remainingCount === 0));
     setFormError(null);
   }
 
@@ -148,6 +212,7 @@ export default function BankAccountsScreen() {
     }
     setSaving(true);
     setFormError(null);
+    const wasEdit = editingId != null;
     try {
       const payload = {
         bank_name,
@@ -162,7 +227,7 @@ export default function BankAccountsScreen() {
       } else {
         await api.createBankAccount(payload);
       }
-      resetForm();
+      resetForm(wasEdit ? accounts.length : accounts.length + 1);
       await load();
       await refreshMe();
     } catch (e) {
@@ -184,7 +249,9 @@ export default function BankAccountsScreen() {
           onPress: async () => {
             try {
               await api.deleteBankAccount(account.id);
-              if (editingId === account.id) resetForm();
+              if (editingId === account.id) {
+                resetForm(Math.max(0, accounts.length - 1));
+              }
               await load();
               await refreshMe();
             } catch (e) {
@@ -237,14 +304,30 @@ export default function BankAccountsScreen() {
           ) : (
             accounts.map((account) => (
               <Card key={account.id} style={{ gap: 8, marginBottom: 12 }}>
-                {account.is_primary ? (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>Primary</Text>
+                <View style={styles.cardHeader}>
+                  <View style={styles.cardHeaderLeft}>
+                    {account.is_primary ? (
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>Primary</Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.label}>Bank</Text>
+                    )}
+                    <Text style={styles.value}>{account.bank_name}</Text>
                   </View>
-                ) : null}
-                <View style={styles.rowGap}>
-                  <Text style={styles.label}>Bank</Text>
-                  <Text style={styles.value}>{account.bank_name}</Text>
+                  <View style={styles.cardActions}>
+                    <IconButton
+                      name="create-outline"
+                      accessibilityLabel="Edit bank account"
+                      onPress={() => startEdit(account)}
+                    />
+                    <IconButton
+                      name="trash-outline"
+                      accessibilityLabel="Delete bank account"
+                      variant="danger"
+                      onPress={() => onDelete(account)}
+                    />
+                  </View>
                 </View>
                 <View style={styles.rowGap}>
                   <Text style={styles.label}>Title</Text>
@@ -260,16 +343,6 @@ export default function BankAccountsScreen() {
                     <Text style={styles.value}>{account.iban}</Text>
                   </View>
                 ) : null}
-                <Button
-                  label="Edit"
-                  variant="secondary"
-                  onPress={() => startEdit(account)}
-                />
-                <Button
-                  label="Delete"
-                  variant="danger"
-                  onPress={() => onDelete(account)}
-                />
               </Card>
             ))
           )}
@@ -277,9 +350,19 @@ export default function BankAccountsScreen() {
           <View style={{ height: 12 }} />
 
           <Card style={{ gap: 14 }}>
-            <Text style={styles.value}>
-              {editingId != null ? "Edit bank account" : "Add bank account"}
-            </Text>
+            <View style={styles.formTitleRow}>
+              <Text style={[styles.value, { flex: 1 }]}>
+                {editingId != null ? "Edit bank account" : "Add bank account"}
+              </Text>
+              {editingId != null ? (
+                <IconButton
+                  name="close"
+                  accessibilityLabel="Cancel edit"
+                  onPress={resetForm}
+                  disabled={saving}
+                />
+              ) : null}
+            </View>
             <Input
               label="Bank name"
               value={form.bank_name}
@@ -310,13 +393,40 @@ export default function BankAccountsScreen() {
             />
             <View style={styles.toggleRow}>
               <Text style={styles.toggleLabel}>Primary account</Text>
-              <Button
-                label={form.is_primary ? "Yes" : "No"}
-                variant={form.is_primary ? "primary" : "secondary"}
-                onPress={() =>
-                  setForm((p) => ({ ...p, is_primary: !p.is_primary }))
-                }
-              />
+              <View style={styles.yesNoGroup}>
+                <Pressable
+                  onPress={() => setForm((p) => ({ ...p, is_primary: true }))}
+                  style={[
+                    styles.yesNoBtn,
+                    form.is_primary && styles.yesNoBtnActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.yesNoText,
+                      form.is_primary && styles.yesNoTextActive,
+                    ]}
+                  >
+                    Yes
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setForm((p) => ({ ...p, is_primary: false }))}
+                  style={[
+                    styles.yesNoBtn,
+                    !form.is_primary && styles.yesNoBtnActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.yesNoText,
+                      !form.is_primary && styles.yesNoTextActive,
+                    ]}
+                  >
+                    No
+                  </Text>
+                </Pressable>
+              </View>
             </View>
             <ErrorText>{formError}</ErrorText>
             <Button
@@ -331,21 +441,6 @@ export default function BankAccountsScreen() {
               loading={saving}
               disabled={saving}
             />
-            {editingId != null ? (
-              <Button
-                label="Cancel edit"
-                variant="secondary"
-                onPress={resetForm}
-                disabled={saving}
-              />
-            ) : (
-              <Button
-                label="Back"
-                variant="secondary"
-                onPress={() => router.back()}
-                disabled={saving}
-              />
-            )}
           </Card>
         </ScrollView>
       </KeyboardAvoidingView>

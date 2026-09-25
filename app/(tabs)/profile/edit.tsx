@@ -224,12 +224,6 @@ export default function EditProfileScreen() {
               loading={saving}
               disabled={saving}
             />
-            <Button
-              label="Cancel"
-              variant="secondary"
-              onPress={() => router.back()}
-              disabled={saving}
-            />
           </Card>
         </ScrollView>
       </KeyboardAvoidingView>

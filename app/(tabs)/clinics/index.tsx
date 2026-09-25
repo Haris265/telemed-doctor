@@ -8,8 +8,6 @@ import {
   View,
 } from "react-native";
 import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { LoadingState } from "@/components/LoadingState";
 import {
@@ -17,6 +15,7 @@ import {
   Card,
   Empty,
   ErrorText,
+  IconButton,
   Input,
   Screen,
   Subtitle,
@@ -87,36 +86,10 @@ export default function ClinicsScreen() {
       fontSize: 11,
       fontFamily: f.sansBold,
     },
-    actions: {
+    cardActions: {
       flexDirection: "row" as const,
       gap: 8,
-      marginTop: 12,
-    },
-    actionBtn: {
-      flex: 1,
-      flexDirection: "row" as const,
-      alignItems: "center" as const,
-      justifyContent: "center" as const,
-      gap: 6,
-      borderWidth: 1,
-      borderColor: c.border,
-      backgroundColor: c.surfaceAlt,
-      borderRadius: 12,
-      paddingVertical: 10,
-    },
-    actionDanger: {
-      borderColor: "rgba(185,28,28,0.35)",
-      backgroundColor: "rgba(185,28,28,0.08)",
-    },
-    actionText: {
-      color: c.text,
-      fontSize: 13,
-      fontFamily: f.sansSemi,
-    },
-    actionDangerText: {
-      color: c.danger,
-      fontSize: 13,
-      fontFamily: f.sansSemi,
+      flexShrink: 0,
     },
     scheduleLink: {
       marginTop: 10,
@@ -274,12 +247,25 @@ export default function ClinicsScreen() {
               <Card key={item.id}>
                 <View style={styles.row}>
                   <Text style={styles.name}>{item.clinic.name}</Text>
-                  {item.is_primary ? (
-                    <View style={styles.badge}>
-                      <Text style={styles.badgeText}>Primary</Text>
-                    </View>
-                  ) : null}
+                  <View style={styles.cardActions}>
+                    <IconButton
+                      name="create-outline"
+                      accessibilityLabel="Edit clinic"
+                      onPress={() => openEdit(item)}
+                    />
+                    <IconButton
+                      name="trash-outline"
+                      accessibilityLabel="Delete clinic"
+                      variant="danger"
+                      onPress={() => onDelete(item)}
+                    />
+                  </View>
                 </View>
+                {item.is_primary ? (
+                  <View style={[styles.badge, { alignSelf: "flex-start", marginTop: 6 }]}>
+                    <Text style={styles.badgeText}>Primary</Text>
+                  </View>
+                ) : null}
                 <Text style={styles.meta}>
                   {[item.clinic.area, item.clinic.city]
                     .filter(Boolean)
@@ -295,23 +281,6 @@ export default function ClinicsScreen() {
                 <Pressable onPress={() => router.push(`/(tabs)/clinics/${item.id}`)}>
                   <Text style={styles.scheduleLink}>Manage schedule →</Text>
                 </Pressable>
-
-                <View style={styles.actions}>
-                  <Pressable
-                    style={styles.actionBtn}
-                    onPress={() => openEdit(item)}
-                  >
-                    <Ionicons name="create-outline" size={16} color={colors.text} />
-                    <Text style={styles.actionText}>Edit</Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.actionBtn, styles.actionDanger]}
-                    onPress={() => onDelete(item)}
-                  >
-                    <Ionicons name="trash-outline" size={16} color={colors.danger} />
-                    <Text style={styles.actionDangerText}>Delete</Text>
-                  </Pressable>
-                </View>
               </Card>
             ))}
           </View>

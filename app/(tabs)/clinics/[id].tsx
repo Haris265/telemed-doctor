@@ -33,6 +33,7 @@ import {
   Button,
   Card,
   ErrorText,
+  IconButton,
   Input,
   Screen,
   Subtitle,
@@ -460,21 +461,46 @@ export default function ClinicScheduleScreen() {
           <>
             {link ? (
               <Card style={{ marginBottom: 14, gap: 4 }}>
-                <Text style={{ color: colors.muted, fontSize: 13 }}>
-                  {link.clinic.address}
-                </Text>
-                {(link.clinic.area || link.clinic.city) && (
-                  <Text style={{ color: colors.muted, fontSize: 13 }}>
-                    {[link.clinic.area, link.clinic.city]
-                      .filter(Boolean)
-                      .join(", ")}
-                  </Text>
-                )}
-                {link.clinic.phone ? (
-                  <Text style={{ color: colors.muted, fontSize: 13 }}>
-                    {link.clinic.phone}
-                  </Text>
-                ) : null}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "flex-start",
+                    justifyContent: "space-between",
+                    gap: 8,
+                  }}
+                >
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <Text style={{ color: colors.muted, fontSize: 13 }}>
+                      {link.clinic.address}
+                    </Text>
+                    {(link.clinic.area || link.clinic.city) && (
+                      <Text style={{ color: colors.muted, fontSize: 13 }}>
+                        {[link.clinic.area, link.clinic.city]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </Text>
+                    )}
+                    {link.clinic.phone ? (
+                      <Text style={{ color: colors.muted, fontSize: 13 }}>
+                        {link.clinic.phone}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <IconButton
+                      name="create-outline"
+                      accessibilityLabel="Edit clinic"
+                      onPress={openEdit}
+                    />
+                    <IconButton
+                      name="trash-outline"
+                      accessibilityLabel="Delete clinic"
+                      variant="danger"
+                      loading={deleting}
+                      onPress={onDeleteClinic}
+                    />
+                  </View>
+                </View>
                 {!link.is_primary ? (
                   <Pressable onPress={onMakePrimary} style={{ marginTop: 8 }}>
                     <Text
@@ -499,23 +525,6 @@ export default function ClinicScheduleScreen() {
                     Primary clinic
                   </Text>
                 )}
-                <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
-                  <View style={{ flex: 1 }}>
-                    <Button
-                      label="Edit clinic"
-                      variant="secondary"
-                      onPress={openEdit}
-                    />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Button
-                      label="Delete"
-                      variant="danger"
-                      loading={deleting}
-                      onPress={onDeleteClinic}
-                    />
-                  </View>
-                </View>
               </Card>
             ) : null}
 
