@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { Button, ErrorText, Input, PageHeader } from "@/components/ui";
+import { Button, ErrorText, FormActions, FormPage, Input, PageHeader } from "@/components/ui";
 import { api } from "@/lib/api";
 import {
   getWhatsAppRedirectUri,
@@ -74,7 +74,7 @@ export default function WhatsAppConnectPage() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <FormPage maxWidth="2xl">
       <PageHeader
         title="Connect WhatsApp"
         subtitle="So patients can book and get visit updates on your number."
@@ -91,14 +91,14 @@ export default function WhatsAppConnectPage() {
         <p className="mb-4 text-xs text-[var(--muted)]">
           Web callback: {getWhatsAppRedirectUri()}
         </p>
-        <div className="flex flex-wrap gap-2">
-          <Button disabled={busy} onClick={() => void onMetaConnect()}>
-            {busy ? "Opening Meta…" : "Continue with Meta"}
-          </Button>
+        <FormActions>
           <Button variant="secondary" onClick={() => router.push("/profile")}>
             Not now
           </Button>
-        </div>
+          <Button disabled={busy} onClick={() => void onMetaConnect()}>
+            {busy ? "Opening Meta…" : "Continue with Meta"}
+          </Button>
+        </FormActions>
         {status?.connected ? (
           <p className="mt-4 text-sm font-semibold text-brand-700">
             Currently connected: {status.display_phone || status.phone_number_id}
@@ -139,11 +139,13 @@ export default function WhatsAppConnectPage() {
             value={displayPhone}
             onChange={(e) => setDisplayPhone(e.target.value)}
           />
-          <Button type="submit" disabled={busy}>
-            Connect manually
-          </Button>
+          <FormActions>
+            <Button type="submit" disabled={busy}>
+              Connect manually
+            </Button>
+          </FormActions>
         </form>
       ) : null}
-    </div>
+    </FormPage>
   );
 }

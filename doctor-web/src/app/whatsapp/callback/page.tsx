@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { ErrorText, PageHeader } from "@/components/ui";
+import { ErrorText, FormPage, PageHeader } from "@/components/ui";
 import { completeWhatsAppConnect } from "@/lib/whatsappConnect";
 
 export default function WhatsAppCallbackPage() {
@@ -36,7 +36,7 @@ function CallbackInner() {
   }, [router, searchParams]);
 
   return (
-    <div className="max-w-lg">
+    <FormPage maxWidth="md">
       <PageHeader
         title="Connecting WhatsApp"
         subtitle="Finishing Meta signup…"
@@ -44,6 +44,6 @@ function CallbackInner() {
       {error ? <ErrorText>{error}</ErrorText> : (
         <p className="text-sm text-[var(--muted)]">Please wait…</p>
       )}
-    </div>
+    </FormPage>
   );
 }

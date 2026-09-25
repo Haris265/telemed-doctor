@@ -3,7 +3,7 @@
 import { FormEvent, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { Button, ErrorText, Input, PageHeader, TextArea } from "@/components/ui";
+import { Button, ErrorText, FormActions, FormPage, Input, PageHeader, TextArea } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { openSlotsForDate } from "@/lib/slots";
@@ -126,7 +126,7 @@ function BookInner() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <FormPage maxWidth="2xl">
       <PageHeader title="Book appointment" subtitle="Walk-in or phone booking." />
       <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border border-[var(--border)] bg-white p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
@@ -219,10 +219,15 @@ function BookInner() {
         />
 
         {error ? <ErrorText>{error}</ErrorText> : null}
-        <Button type="submit" disabled={busy}>
-          {busy ? "Booking…" : "Confirm booking"}
-        </Button>
+        <FormActions>
+          <Button type="button" variant="secondary" onClick={() => router.back()}>
+            Back
+          </Button>
+          <Button type="submit" disabled={busy}>
+            {busy ? "Booking…" : "Confirm booking"}
+          </Button>
+        </FormActions>
       </form>
-    </div>
+    </FormPage>
   );
 }

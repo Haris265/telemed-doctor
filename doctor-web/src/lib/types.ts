@@ -35,6 +35,7 @@ export type AvailabilitySlot = {
   start_time: string;
   end_time: string;
   is_active: boolean;
+  specific_date?: string | null;
   created_at: string;
 };
 
@@ -54,6 +55,24 @@ export type ScheduleSlotInput = {
   is_active?: boolean;
 };
 
+export type DateScheduleSlotInput = {
+  start_time: string;
+  end_time: string;
+  is_active?: boolean;
+};
+
+export type DateAvailabilityReplacePayload = {
+  date: string;
+  slots: DateScheduleSlotInput[];
+  closed?: boolean;
+};
+
+export type DateAvailabilityReplaceResponse = {
+  date: string;
+  closed: boolean;
+  slots: AvailabilitySlot[];
+};
+
 export type DoctorProfile = {
   id: number;
   uuid: string;
@@ -63,8 +82,112 @@ export type DoctorProfile = {
   email: string;
   specialities: Speciality[];
   session_time: number;
+  consultation_fee?: string | number;
+  bank_accounts?: DoctorBankAccount[];
+  is_active: boolean;
+  marketing_enabled?: boolean;
+  created_at: string;
+};
+
+export type DoctorProfileUpdatePayload = {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  session_time?: number;
+  consultation_fee?: string | number;
+};
+
+export type DoctorBankAccount = {
+  id: number;
+  bank_name: string;
+  account_title: string;
+  account_number: string;
+  iban: string;
+  is_primary: boolean;
   is_active: boolean;
   created_at: string;
+  updated_at: string;
+};
+
+export type DoctorBankAccountPayload = {
+  bank_name: string;
+  account_title: string;
+  account_number: string;
+  iban?: string;
+  is_primary?: boolean;
+  is_active?: boolean;
+};
+
+export type ChangePasswordPayload = {
+  current_password: string;
+  new_password: string;
+  confirm_password: string;
+};
+
+export type MarketingStatus = {
+  marketing_enabled: boolean;
+  whatsapp_connected: boolean;
+};
+
+export type MessageTemplate = {
+  id: number;
+  name: string;
+  body: string;
+  header_image?: string | null;
+  header_image_url?: string;
+  meta_template_name: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AudiencePreview = {
+  count: number;
+  sample: { uuid: string; name: string; phone: string }[];
+};
+
+export type CampaignFilters = {
+  clinic_id?: number | string;
+  city?: string;
+  area?: string;
+  last_visit_days?: number | string;
+  has_upcoming?: boolean | string;
+};
+
+export type MarketingCampaign = {
+  id: number;
+  name: string;
+  template: number;
+  template_name: string;
+  filter_json: CampaignFilters;
+  status: "draft" | "queued" | "sending" | "done" | "failed" | string;
+  recipient_counts: {
+    total: number;
+    pending: number;
+    sent: number;
+    failed: number;
+    skipped: number;
+  };
+  created_at: string;
+  updated_at: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+};
+
+export type CampaignRecipient = {
+  id: number;
+  phone: string;
+  patient: number | null;
+  patient_name?: string;
+  status: "pending" | "sent" | "failed" | "skipped" | string;
+  error: string;
+  sent_at?: string | null;
+};
+
+export type CampaignSendResult = {
+  campaign: MarketingCampaign;
+  batch: { sent: number; failed: number; skipped: number };
+  warning?: string;
 };
 
 export type UserInfo = {
@@ -112,8 +235,24 @@ export type VisitAttachment = {
   mime_type: string;
   duration_seconds?: number | null;
   sent_via_whatsapp?: boolean;
+  transcript_text?: string;
+  summary_text?: string;
+  summary_status?: "pending" | "ready" | "failed" | "skipped";
+  summary_error?: string;
   created_at: string;
 };
+
+export type AppointmentPaymentMethod = "bank_transfer" | "cash_at_clinic" | "";
+export type AppointmentPaymentStatus =
+  | "pending"
+  | "paid"
+  | "failed"
+  | "not_required";
+export type AppointmentPaymentOcrStatus =
+  | "pending"
+  | "passed"
+  | "failed"
+  | "skipped";
 
 export type Appointment = {
   id: number;
@@ -141,6 +280,14 @@ export type Appointment = {
   clinical_note?: ClinicalNote | null;
   prescription?: Prescription | null;
   attachments?: VisitAttachment[];
+  payment_method?: AppointmentPaymentMethod | string;
+  payment_status?: AppointmentPaymentStatus | string;
+  payment_amount_expected?: string | number | null;
+  payment_amount_received?: string | number | null;
+  payment_reference?: string;
+  payment_slip?: string | null;
+  payment_ocr_status?: AppointmentPaymentOcrStatus | string;
+  payment_verified_at?: string | null;
 };
 
 export type AvailabilityWindow = {

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Empty, ErrorText, Input, PageHeader } from "@/components/ui";
+import { Empty, ErrorText, PageHeader, PageLoader, SearchBar } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { DoctorPatientSummary } from "@/lib/types";
 
@@ -33,8 +33,7 @@ export default function PatientsPage() {
     const q = query.trim().toLowerCase();
     if (!q) return items;
     return items.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) || p.phone.includes(q),
+      (p) => p.name.toLowerCase().includes(q) || p.phone.includes(q),
     );
   }, [items, query]);
 
@@ -42,22 +41,22 @@ export default function PatientsPage() {
     <div>
       <PageHeader title="Patients" subtitle="Your patient directory." />
       <div className="mb-4 max-w-md">
-        <Input
+        <SearchBar
           placeholder="Search name or phone…"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={setQuery}
         />
       </div>
       {error ? <ErrorText>{error}</ErrorText> : null}
       {loading ? (
-        <p className="text-sm text-[var(--muted)]">Loading…</p>
+        <PageLoader label="Loading patients…" />
       ) : filtered.length ? (
         <div className="space-y-3">
           {filtered.map((p) => (
             <Link
               key={p.uuid}
               href={`/patient/${p.uuid}`}
-              className="block rounded-2xl border border-[var(--border)] bg-white p-4 shadow-sm hover:border-brand-300"
+              className="block rounded-2xl border border-[var(--border)] bg-white p-4 shadow-sm transition hover:border-brand-300 hover:shadow-md"
             >
               <p className="font-semibold">{p.name}</p>
               <p className="text-sm text-[var(--muted)]">{p.phone}</p>

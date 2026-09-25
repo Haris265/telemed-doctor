@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { AppointmentCard, Empty, ErrorText, PageHeader, StatCard } from "@/components/ui";
+import { AppointmentCard, Empty, ErrorText, PageHeader, PageLoader, StatCard } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { DashboardStats } from "@/lib/types";
@@ -49,7 +49,7 @@ export default function HomePage() {
       />
       {error ? <ErrorText>{error}</ErrorText> : null}
       {loading && !stats ? (
-        <p className="text-sm text-[var(--muted)]">Loading dashboard…</p>
+        <PageLoader label="Loading dashboard…" />
       ) : (
         <>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

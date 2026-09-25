@@ -9,8 +9,10 @@ import {
   AppointmentCard,
   Empty,
   ErrorText,
-  Input,
+  FilterChips,
   PageHeader,
+  PageLoader,
+  SearchBar,
 } from "@/components/ui";
 import { api } from "@/lib/api";
 import { formatDate, todayIso } from "@/lib/format";
@@ -38,7 +40,7 @@ async function fetchFilterData(filter: Filter, today: string) {
 
 export default function AppointmentsPage() {
   return (
-    <Suspense fallback={<p className="text-sm text-[var(--muted)]">Loading…</p>}>
+    <Suspense fallback={<PageLoader label="Loading appointments…" />}>
       <AppointmentsInner />
     </Suspense>
   );
@@ -107,32 +109,19 @@ function AppointmentsInner() {
           </Link>
         }
       />
-      <div className="mb-4 flex flex-wrap gap-2">
-        {FILTERS.map((f) => (
-          <button
-            key={f}
-            type="button"
-            onClick={() => setFilter(f)}
-            className={`rounded-full px-3 py-1.5 text-sm font-semibold capitalize ${
-              filter === f
-                ? "bg-brand-600 text-white"
-                : "border border-[var(--border)] bg-white text-[var(--muted)]"
-            }`}
-          >
-            {f}
-          </button>
-        ))}
+      <div className="mb-4">
+        <FilterChips options={FILTERS} value={filter} onChange={setFilter} />
       </div>
       <div className="mb-4 max-w-md">
-        <Input
+        <SearchBar
           placeholder="Search name, phone, token…"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={setQuery}
         />
       </div>
       {error ? <ErrorText>{error}</ErrorText> : null}
       {loading ? (
-        <p className="text-sm text-[var(--muted)]">Loading…</p>
+        <PageLoader label="Loading appointments…" />
       ) : groups.length ? (
         <div className="space-y-6">
           {groups.map(([date, list]) => (

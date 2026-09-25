@@ -3,7 +3,15 @@
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
-import { Button, Empty, ErrorText, Input, PageHeader } from "@/components/ui";
+import {
+  Button,
+  Empty,
+  ErrorText,
+  FormSection,
+  Input,
+  PageHeader,
+  PageLoader,
+} from "@/components/ui";
 import { api } from "@/lib/api";
 import type { DoctorClinic } from "@/lib/types";
 
@@ -74,38 +82,60 @@ export default function ClinicsPage() {
         }
       />
       {showForm ? (
-        <form
-          onSubmit={onCreate}
-          className="mb-6 grid gap-3 rounded-2xl border border-[var(--border)] bg-white p-4 sm:grid-cols-2"
-        >
-          <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} required />
-          <Input label="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          <Input
-            label="Address"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            required
-            className="sm:col-span-2"
-          />
-          <Input label="City" value={city} onChange={(e) => setCity(e.target.value)} />
-          <Input label="Area" value={area} onChange={(e) => setArea(e.target.value)} />
-          <div className="sm:col-span-2">
-            <Button type="submit" disabled={busy}>
-              {busy ? "Saving…" : "Create clinic"}
-            </Button>
-          </div>
+        <form onSubmit={onCreate} className="mb-6">
+          <FormSection
+            title="New clinic"
+            description="Add a location where you see patients."
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input
+                label="Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+              <Input
+                label="Phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+              <div className="sm:col-span-2">
+                <Input
+                  label="Address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  required
+                />
+              </div>
+              <Input
+                label="City"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+              />
+              <Input
+                label="Area"
+                value={area}
+                onChange={(e) => setArea(e.target.value)}
+              />
+              <div className="sm:col-span-2">
+                <Button type="submit" disabled={busy}>
+                  {busy ? "Saving…" : "Create clinic"}
+                </Button>
+              </div>
+            </div>
+          </FormSection>
         </form>
       ) : null}
       {error ? <ErrorText>{error}</ErrorText> : null}
       {loading ? (
-        <p className="text-sm text-[var(--muted)]">Loading…</p>
+        <PageLoader label="Loading clinics…" />
       ) : items.length ? (
         <div className="space-y-3">
           {items.map((c) => (
             <Link
               key={c.id}
               href={`/clinic/${c.id}`}
-              className="block rounded-2xl border border-[var(--border)] bg-white p-4 shadow-sm hover:border-brand-300"
+              className="block rounded-2xl border border-[var(--border)] bg-white p-4 shadow-sm transition hover:border-brand-300 hover:shadow-md"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>

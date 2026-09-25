@@ -1,17 +1,30 @@
 import { storage } from "./storage";
 import type {
   Appointment,
+  AudiencePreview,
   AvailabilitySlot,
+  CampaignFilters,
+  CampaignRecipient,
+  CampaignSendResult,
+  ChangePasswordPayload,
   ClinicAvailableDatesResponse,
   ClinicFormPayload,
   DashboardStats,
+  DateAvailabilityReplacePayload,
+  DateAvailabilityReplaceResponse,
+  DoctorBankAccount,
+  DoctorBankAccountPayload,
   DoctorBookPayload,
   DoctorClinic,
   DoctorPatientDetail,
   DoctorPatientSummary,
   DoctorProfile,
+  DoctorProfileUpdatePayload,
   DoctorWhatsAppSession,
   DoctorWhatsAppStatus,
+  MarketingCampaign,
+  MarketingStatus,
+  MessageTemplate,
   PatientLookup,
   ScheduleSlotInput,
   UserInfo,
@@ -164,14 +177,17 @@ async function request<T>(
 }
 
 export const api = {
-  login: async (username: string, password: string) => {
+  login: async (email: string, password: string) => {
     const data = await request<{
       access: string;
       refresh: string;
       user: UserInfo;
     }>(
       "/api/auth/login/",
-      { method: "POST", body: JSON.stringify({ username, password }) },
+      {
+        method: "POST",
+        body: JSON.stringify({ username: email, password }),
+      },
       false,
     );
     if (data.user.role !== "doctor") {
@@ -184,6 +200,38 @@ export const api = {
   },
 
   me: () => request<DoctorProfile>("/api/doctor/me/"),
+
+  updateMe: (payload: DoctorProfileUpdatePayload) =>
+    request<DoctorProfile>("/api/doctor/me/", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+
+  bankAccounts: () =>
+    request<DoctorBankAccount[]>("/api/doctor/bank-accounts/"),
+
+  createBankAccount: (payload: DoctorBankAccountPayload) =>
+    request<DoctorBankAccount>("/api/doctor/bank-accounts/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  updateBankAccount: (id: number, payload: Partial<DoctorBankAccountPayload>) =>
+    request<DoctorBankAccount>(`/api/doctor/bank-accounts/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+
+  deleteBankAccount: (id: number) =>
+    request<void>(`/api/doctor/bank-accounts/${id}/`, {
+      method: "DELETE",
+    }),
+
+  changePassword: (payload: ChangePasswordPayload) =>
+    request<{ detail: string }>("/api/auth/change-password/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
 
   dashboard: () => request<DashboardStats>("/api/doctor/dashboard/"),
 
@@ -257,6 +305,25 @@ export const api = {
     request<void>(
       `/api/doctor/appointments/${appointmentId}/attachments/${attachmentId}/`,
       { method: "DELETE" },
+    ),
+
+  updateAttachmentSummary: (
+    appointmentId: number,
+    attachmentId: number,
+    payload: { summary_text: string },
+  ) =>
+    request<VisitAttachment>(
+      `/api/doctor/appointments/${appointmentId}/attachments/${attachmentId}/`,
+      { method: "PATCH", body: JSON.stringify(payload) },
+    ),
+
+  regenerateAttachmentSummary: (
+    appointmentId: number,
+    attachmentId: number,
+  ) =>
+    request<VisitAttachment>(
+      `/api/doctor/appointments/${appointmentId}/attachments/${attachmentId}/regenerate-summary/`,
+      { method: "POST", body: JSON.stringify({}) },
     ),
 
   patients: () => request<DoctorPatientSummary[]>("/api/doctor/patients/"),
@@ -348,6 +415,18 @@ export const api = {
       },
     ),
 
+  replaceClinicDateAvailability: (
+    clinicLinkId: number,
+    payload: DateAvailabilityReplacePayload,
+  ) =>
+    request<DateAvailabilityReplaceResponse>(
+      `/api/doctor/clinics/${clinicLinkId}/availability/date/`,
+      {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      },
+    ),
+
   whatsappStatus: () =>
     request<DoctorWhatsAppStatus>("/api/doctor/whatsapp/status/"),
 
@@ -384,5 +463,95 @@ export const api = {
   whatsappDisconnect: () =>
     request<DoctorWhatsAppStatus>("/api/doctor/whatsapp/disconnect/", {
       method: "DELETE",
+    }),
+
+  marketingStatus: () =>
+    request<MarketingStatus>("/api/doctor/marketing/status/"),
+
+  marketingTemplates: async () => {
+    const data = await request<MessageTemplate[] | { results: MessageTemplate[] }>(
+      "/api/doctor/marketing/templates/",
+    );
+    return unwrapList(data);
+  },
+
+  createMarketingTemplate: (payload: {
+    name: string;
+    body: string;
+    meta_template_name?: string;
+    header_image?: File | null;
+    is_active?: boolean;
+  }) => {
+    const form = new FormData();
+    form.append("name", payload.name);
+    form.append("body", payload.body);
+    if (payload.meta_template_name != null) {
+      form.append("meta_template_name", payload.meta_template_name);
+    }
+    if (payload.is_active != null) {
+      form.append("is_active", payload.is_active ? "true" : "false");
+    }
+    if (payload.header_image) {
+      form.append("header_image", payload.header_image);
+    }
+    return request<MessageTemplate>("/api/doctor/marketing/templates/", {
+      method: "POST",
+      body: form,
+    });
+  },
+
+  deleteMarketingTemplate: (id: number) =>
+    request<void>(`/api/doctor/marketing/templates/${id}/`, {
+      method: "DELETE",
+    }),
+
+  marketingAudience: (filters?: CampaignFilters) => {
+    const qs = new URLSearchParams();
+    if (filters?.clinic_id) qs.set("clinic_id", String(filters.clinic_id));
+    if (filters?.city) qs.set("city", String(filters.city));
+    if (filters?.area) qs.set("area", String(filters.area));
+    if (filters?.last_visit_days) {
+      qs.set("last_visit_days", String(filters.last_visit_days));
+    }
+    if (filters?.has_upcoming) qs.set("has_upcoming", "1");
+    const query = qs.toString();
+    return request<AudiencePreview>(
+      query
+        ? `/api/doctor/marketing/audience/?${query}`
+        : "/api/doctor/marketing/audience/",
+    );
+  },
+
+  marketingCampaigns: async () => {
+    const data = await request<
+      MarketingCampaign[] | { results: MarketingCampaign[] }
+    >("/api/doctor/marketing/campaigns/");
+    return unwrapList(data);
+  },
+
+  marketingCampaign: (id: number) =>
+    request<MarketingCampaign>(`/api/doctor/marketing/campaigns/${id}/`),
+
+  createMarketingCampaign: (payload: {
+    template_id: number;
+    name?: string;
+    filter_json?: CampaignFilters;
+  }) =>
+    request<MarketingCampaign>("/api/doctor/marketing/campaigns/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  marketingCampaignRecipients: async (id: number) => {
+    const data = await request<
+      CampaignRecipient[] | { results: CampaignRecipient[] }
+    >(`/api/doctor/marketing/campaigns/${id}/recipients/`);
+    return unwrapList(data);
+  },
+
+  sendMarketingCampaign: (id: number, batchSize = 50) =>
+    request<CampaignSendResult>(`/api/doctor/marketing/campaigns/${id}/send/`, {
+      method: "POST",
+      body: JSON.stringify({ batch_size: batchSize }),
     }),
 };

@@ -2,16 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Aligned with doctor-mobile constants/theme.ts clinic palette */
 :root {
-  --bg: #f0f7f5;
+  --bg: #e8f2f0;
+  --bg-soft: #f3f9f7;
+  --bg-accent: #d5ebe6;
   --surface: #ffffff;
-  --text: #0f1f1c;
-  --muted: #5b6b68;
-  --border: #d5e5e1;
-  --primary: #0d9488;
-  --danger: #dc2626;
-  --success: #059669;
-  --warning: #d97706;
+  --surface-alt: #e7f1ee;
+  --text: #123230;
+  --muted: #5a7470;
+  --border: #c5d9d3;
+  --primary: #0f766e;
+  --primary-dark: #115e59;
+  --danger: #b91c1c;
+  --success: #047857;
+  --warning: #b45309;
 }
 
 * {
